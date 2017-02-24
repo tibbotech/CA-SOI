@@ -1,0 +1,759 @@
+include "global.tbh"
+
+'====================================================================
+public sub boot
+	dim f,x as byte
+	dim dsman_config as word
+	dim num_ports_in_use as byte
+	dim dhcp_used as no_yes
+
+
+	'do we have an OLED display?
+	#if SUPPORTS_DISPLAY
+		lcd_init()
+		lcd_display_page(LCD_PAGE_LOGO,LCD_PRINT_MODE_AGGRESSIVE,LCD_PRINT_ELEMENT_ALL)
+	#endif
+
+	for f=0 to MAX_NUM_INTERFACES-1
+		interface_ready(f)=NO
+	next f
+
+	if stg_start()<>EN_STG_STATUS_OK then
+		goto boot_failed
+	end if
+
+	'form configuration words for descriptor files
+	dsman_config=0
+	html_print_setting_flags_settings_page=0
+	html_print_setting_flags_ports_page=0
+	
+	'numbers 1,2,4,8,16,32,64 below -- see SDF_4P_4C.TXT
+	#if DEVICE_PORT_SCHEME=PORT_SCHEME_4P
+		dsman_config=dsman_config+1
+		html_print_setting_flags_settings_page=html_print_setting_flags_settings_page+1
+	#elif DEVICE_PORT_SCHEME=PORT_SCHEME_4C
+		dsman_config=dsman_config+2
+		#if SUPPORTS_422_485_4
+			html_print_setting_flags_settings_page=html_print_setting_flags_settings_page+128
+		#else	
+			html_print_setting_flags_settings_page=html_print_setting_flags_settings_page+2
+		#endif
+	#endif
+
+	#if POWER_ON_PIN9
+		dsman_config=dsman_config+4
+		html_print_setting_flags_settings_page=html_print_setting_flags_settings_page+4
+	#endif
+
+	select case NUM_SERIAL_PORTS
+	case 1:
+		'---
+	case 2:
+		html_print_setting_flags_settings_page=html_print_setting_flags_settings_page+256
+	case 3:
+		html_print_setting_flags_settings_page=html_print_setting_flags_settings_page+512
+	case else:
+		html_print_setting_flags_settings_page=html_print_setting_flags_settings_page+1024
+	end select
+
+	#if WLN_AVAILABLE
+		dsman_config=dsman_config+8
+	#endif
+
+	#if SUPPORTS_GPRS
+		dsman_config=dsman_config+16
+	#endif
+
+	#if SUPPORTS_422_485_4
+		dsman_config=dsman_config+32
+		html_print_setting_flags_ports_page=html_print_setting_flags_ports_page+32
+	#elif SUPPORTS_422_485_1
+		dsman_config=dsman_config+8192
+		html_print_setting_flags_ports_page=html_print_setting_flags_ports_page+512
+		html_print_setting_flags_settings_page=html_print_setting_flags_settings_page+2048
+	#else
+		#if DEVICE_PORT_SCHEME=PORT_SCHEME_4C
+			dsman_config=dsman_config+16384
+			html_print_setting_flags_settings_page=html_print_setting_flags_settings_page+4096
+		#endif
+		dsman_config=dsman_config+64
+		html_print_setting_flags_ports_page=html_print_setting_flags_ports_page+64
+	#endif
+
+	#if SUPPORTS_OVER_115200
+		html_print_setting_flags_ports_page=html_print_setting_flags_ports_page+256
+	#else
+		html_print_setting_flags_ports_page=html_print_setting_flags_ports_page+128
+	#endif
+
+	if NUM_SERIAL_PORTS>=2 then
+		dsman_config=dsman_config+128
+	end if
+
+	if NUM_SERIAL_PORTS>=3 then
+		dsman_config=dsman_config+256
+	end if
+
+	if NUM_SERIAL_PORTS>=4 then
+		dsman_config=dsman_config+512
+	end if
+
+	select case NUM_SERIAL_PORTS
+	case 1:
+		'---
+	case 2:
+		dsman_config=dsman_config+1024
+	case 3:
+		dsman_config=dsman_config+2048
+	case else:
+		dsman_config=dsman_config+4096
+	end select
+
+	if dsman_start(dsman_config)<>EN_DSMAN_STATUS_OK then
+		goto boot_failed
+	end if
+
+	html_session_init()
+
+	'----- initialize run-time vars -----
+	error_mode=NO
+	login_mode=CMD_MODE_NONE
+	login_data=""
+	login_tout=0
+	quick_init_flag=QI_NULL
+
+       	for f=0 to NUM_SERIAL_PORTS-1
+		overrun_es(f)=NO
+		overrun_se(f)=NO
+	next f
+
+	'first assume we have no serial ports
+	for f=0 to NUM_SERIAL_PORTS-1
+		ser.num=f
+		port_in_use(f)=NO
+		ser.ctsmap=PL_INT_NULL
+		ser.rtsmap=PL_IO_NULL
+		dsr_mapping(f)=PL_IO_NULL
+		dtr_mapping(f)=PL_IO_NULL
+		cts_mapping(f)=PL_IO_NULL
+	next f
+
+	'We have to know NOW if GPRS is enabled. If it is then serial port 4 can't be used for communications
+	#if SUPPORTS_GPRS
+		param_ge=stg_get("GE",0)
+	#else
+		param_ge=GE_DISABLED
+	#endif
+
+	'we need to pre-read this now 
+	#if DEVICE_PORT_SCHEME=PORT_SCHEME_1P
+		param_si(0)=val(stg_get("SI",0))
+	#else
+		for f=0 to MAX_NUM_SERIAL_PORTS-1
+			param_si(f)=val(stg_get("SI",f))
+		next f
+	#endif
+
+	#if DEVICE_PORT_SCHEME=PORT_SCHEME_4P or DEVICE_PORT_SCHEME=PORT_SCHEME_1P
+		'----- INDEPENDENT PORTS or a SINGLE PORT -----
+		
+		'we have one port in any case
+		port_in_use(0)=YES
+		ser.num=0
+		ser.ctsmap=SER0_CTS_INT
+		ser.rtsmap=SER0_RTS
+		cts_mapping(0)=BASE_OF_INT_LINES+SER0_CTS_INT 
+		dsr_mapping(0)=SER0_DSR
+		dtr_mapping(0)=SER0_DTR
+		num_ports_in_use=1
+		
+		#if DEVICE_PORT_SCHEME=PORT_SCHEME_4P 
+			x=val(stg_get("PC",0))
+			if x>=1 then
+				'we have second port
+				port_in_use(1)=YES
+				ser.num=1
+				ser.ctsmap=SER1_CTS_INT
+				ser.rtsmap=SER1_RTS
+				cts_mapping(1)=BASE_OF_INT_LINES+SER1_CTS_INT
+				dsr_mapping(1)=SER1_DSR
+				dtr_mapping(1)=SER1_DTR
+				num_ports_in_use=2
+			end if
+			
+			if x>=2 then
+				'we have third port
+				port_in_use(2)=YES
+				ser.num=2
+				ser.ctsmap=SER2_CTS_INT
+				ser.rtsmap=SER2_RTS
+				cts_mapping(2)=BASE_OF_INT_LINES+SER2_CTS_INT
+				dsr_mapping(2)=SER2_DSR
+				dtr_mapping(2)=SER2_DTR
+				num_ports_in_use=3
+			end if
+
+			if x>=3 and param_ge=GE_DISABLED then
+				'we have fourth port
+				port_in_use(3)=YES
+				ser.num=3
+				ser.ctsmap=SER3_CTS_INT
+				ser.rtsmap=SER3_RTS
+				cts_mapping(3)=BASE_OF_INT_LINES+SER3_CTS_INT
+				dsr_mapping(3)=SER3_DSR
+				dtr_mapping(3)=SER3_DTR
+				num_ports_in_use=4
+			end if
+		#endif
+	#else
+		'----- CHANNELS -----
+		
+		port_in_use(0)=YES	'port 0 is always in use
+		ser.num=0			'select case below -- will start setup with port 0
+
+		#if DEVICE_PORT_SCHEME=PORT_SCHEME_4C	
+			x=val(stg_get("PC",0))
+			
+			#if SUPPORTS_422_485_1
+				if param_si(0)=1 then x=0 'RS485: revert to the first configuration
+				if param_si(0)=2 then 'RS422: only three configurations are allowed for it
+					if x<>0 and x<>5 and x<>14 then
+						x=0
+						stg_set("PC",0,str(x))
+					end if
+				end if
+			#endif
+						
+			select case x
+			case M0:	'RX/TX		CTS/RTS		DSR/DTR		---/---
+				cts_mapping(0)=L2	
+				ser.ctsmap=I2
+				ser.rtsmap=L3
+				dsr_mapping(0)=L4
+				dtr_mapping(0)=L5
+
+			case M1:	'RX/TX		CTS/RTS		DSR/DTR		RX3/tx3
+				cts_mapping(0)=L2	
+				ser.ctsmap=I2
+				ser.rtsmap=L3
+				dsr_mapping(0)=L4
+				dtr_mapping(0)=L5
+				port_in_use(3)=YES
+			
+			case M2:	'RX/TX		CTS/RTS		RX2/TX2		RX3/tx3
+				cts_mapping(0)=L2
+				ser.ctsmap=I2
+				ser.rtsmap=L3
+				port_in_use(2)=YES
+				port_in_use(3)=YES
+
+			case M3:	'RX/TX		CTS/RTS		RX2/TX2		CTS2/rts2
+				cts_mapping(0)=L2
+				ser.ctsmap=I2
+				ser.rtsmap=L3
+				port_in_use(2)=YES
+				ser.num=2
+				cts_mapping(2)=L6
+				ser.ctsmap=I6
+				ser.rtsmap=L7
+			
+			case M4:	'RX/TX		CTS/RTS		RX2/TX2		DSR2/dtr2
+				cts_mapping(0)=L2
+				ser.ctsmap=I2
+				ser.rtsmap=L3
+				port_in_use(2)=YES
+				dsr_mapping(2)=L6
+				dtr_mapping(2)=L7
+			
+			case M5:	'RX/TX		RX1/TX1		DSR/DTR		RX3/tx3
+				dsr_mapping(0)=L4
+				dtr_mapping(0)=L5
+				port_in_use(1)=YES
+				port_in_use(3)=YES
+
+			case M6:	'RX/TX		RX1/TX1		DSR/DTR		CTS1/rts1
+				dsr_mapping(0)=L4
+				dtr_mapping(0)=L5
+				port_in_use(1)=YES
+				ser.num=1
+				cts_mapping(1)=L6
+				ser.ctsmap=I6
+				ser.rtsmap=L7
+		
+			case M7:	'RX/TX		RX1/TX1		DSR/DTR		DSR1/dtr1
+				dsr_mapping(0)=L4
+				dtr_mapping(0)=L5
+				port_in_use(1)=YES
+				dsr_mapping(1)=L6
+				dtr_mapping(1)=L7
+		
+			case M8:	'RX/TX		RX1/TX1		RX2/TX2		RX3/tx3
+				port_in_use(1)=YES
+				port_in_use(2)=YES
+				port_in_use(3)=YES
+			
+			case M9:	'RX/TX		RX1/TX1		RX2/TX2		CTS/rts
+				cts_mapping(0)=L6
+				ser.ctsmap=I6
+				ser.rtsmap=L7
+				port_in_use(1)=YES
+				port_in_use(2)=YES
+			
+			case M10:	'RX/TX		RX1/TX1		RX2/TX2		DSR/dtr
+				dsr_mapping(0)=L6
+				dtr_mapping(0)=L7
+				port_in_use(1)=YES
+				port_in_use(2)=YES
+			
+			case M11:	'RX/TX		CTS/RTS		CTS3/RTS3	RX3/tx3
+				cts_mapping(0)=L2
+				ser.ctsmap=I2
+				ser.rtsmap=L3
+				port_in_use(3)=YES
+				ser.num=3
+				cts_mapping(3)=L4
+				ser.ctsmap=I4
+				ser.rtsmap=L5
+					
+			case M12:	'RX/TX		CTS/RTS		DSR3/DTR3	RX3/tx3	
+				cts_mapping(0)=L2
+				ser.ctsmap=I2
+				ser.rtsmap=L3
+				port_in_use(3)=YES
+				dsr_mapping(3)=L4
+				dtr_mapping(3)=L5
+				
+			case M13:	'RX/TX		CTS3/RTS3	DSR/DTR		RX3/tx3
+				dsr_mapping(0)=L4
+				dtr_mapping(0)=L5
+				port_in_use(3)=YES
+				ser.num=3
+				cts_mapping(3)=L2
+				ser.ctsmap=I2
+				ser.rtsmap=L3
+
+			case M14:	'RX/TX		DSR3/DTR3	DSR/DTR		RX3/tx3
+				dsr_mapping(0)=L4
+				dtr_mapping(0)=L5
+				port_in_use(3)=YES
+				dsr_mapping(3)=L2
+				dtr_mapping(3)=L3
+			end select
+		#endif
+
+		'so how many ports will be in use?
+		for f=0 to NUM_SERIAL_PORTS-1
+			if port_in_use(f)=YES then num_ports_in_use=num_ports_in_use+1
+		next f
+	#endif
+	
+	
+	#if SIGNAL_STRENGTH_INDICATION
+		signal_strength_indication_init()
+	#endif	
+	
+	'----- per-channel state indication -----
+
+	#if PER_CHANNEL_STATUS_INDICATION
+		io.num=PL_IO_NUM_24
+		for f=0 to 7
+			io.num=PL_IO_NUM_24+f
+			io.enabled=YES
+		next f
+
+		pat.channel=1
+		pat.redmap=PL_IO_NUM_30
+		pat.greenmap=PL_IO_NUM_31
+
+		pat.channel=2
+		pat.redmap=PL_IO_NUM_28
+		pat.greenmap=PL_IO_NUM_29
+
+		pat.channel=3
+		pat.redmap=PL_IO_NUM_26
+		pat.greenmap=PL_IO_NUM_27
+
+		pat.channel=4
+		pat.redmap=PL_IO_NUM_24
+		pat.greenmap=PL_IO_NUM_25
+
+	#endif
+
+	'----- hardware mode of serial ports -----
+	#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_4C
+		'this is for DS1102
+		io.num=SER0_HDFD
+		io.state=HIGH
+		io.enabled=YES
+		io.num=SER0_RSMD
+		io.state=LOW
+		io.enabled=YES
+	#endif
+	
+	#if SUPPORTS_422_485_4 and DEVICE_PORT_SCHEME=PORT_SCHEME_4P
+		'this is for controlling the hardware mode of ports
+		'will only work on DS1002/3 (or compatible hardware)
+		'we first configure these ports for RS232
+		io.num=SER0_HDFD
+		io.state=HIGH
+		io.enabled=YES
+		io.num=SER0_RSMD
+		io.state=LOW
+		io.enabled=YES
+
+		io.num=SER1_HDFD
+		io.state=HIGH
+		io.enabled=YES
+		io.num=SER1_RSMD
+		io.state=LOW
+		io.enabled=YES
+		
+		io.num=SER2_HDFD
+		io.state=HIGH
+		io.enabled=YES
+		io.num=SER2_RSMD
+		io.state=LOW
+		io.enabled=YES
+		
+		io.num=SER3_HDFD
+		io.state=HIGH
+		io.enabled=YES
+		io.num=SER3_RSMD
+		io.state=LOW
+		io.enabled=YES
+	#endif
+
+
+	'----- the following will prevent erroneous socket matching if some array members are not initialized -----
+	sock_udp=255
+	for f=0 to NUM_SERIAL_PORTS-1
+		sock_notif(f)=255
+		sock_comm(f)=255
+	next f
+	for f=0 to NUM_HTTP_SOCKETS-1
+		sock_http(f)=255
+	next f
+
+
+	'----- setup operating modes according to settings -----
+
+	dhcp_used=NO
+	dhcp_failed(PL_SOCK_INTERFACE_NET)=NO
+	#if WLN_AVAILABLE
+		dhcp_failed(PL_SOCK_INTERFACE_WLN)=NO
+	#endif
+
+	#if DEV_DEBUG_PRINT
+		dev_debugprint("Set current interface to Ethernet")
+	#endif
+	interface_ready(PL_SOCK_INTERFACE_NET)=YES
+	current_interface=PL_SOCK_INTERFACE_NET
+
+	'net. parameters and DHCP
+	net.ip=validate_ip(stg_get("IP",0))
+	net.gatewayip=stg_get("GI",0)
+	net.netmask=stg_get("NM",0)
+	param_dh=val(stg_get("DH",0))
+	if param_dh<>NO then
+		ip_configured(PL_SOCK_INTERFACE_NET)=NO
+		dhcp_start(PL_SOCK_INTERFACE_NET,net.ip,"")
+		dhcp_used=YES
+	else
+		ip_configured(PL_SOCK_INTERFACE_NET)=YES
+	end if
+
+	#if WLN_AVAILABLE
+		'Wi-Fi parameters and DHCP
+		wln_error=NO
+		param_we=stg_get("WE",0)
+		if param_we<>WE_DISABLED then
+			num_wln_failures=0
+			wln.ip=validate_ip(stg_get("WI",0))
+			wln.gatewayip=stg_get("WG",0)
+			wln.netmask=stg_get("WN",0)
+			param_wd=val(stg_get("WD",0))
+			if param_wd<>NO then
+				ip_configured(PL_SOCK_INTERFACE_WLN)=NO
+				dhcp_start(PL_SOCK_INTERFACE_WLN,wln.ip,"")
+				dhcp_used=YES
+			else
+				ip_configured(PL_SOCK_INTERFACE_WLN)=YES
+			end if
+			param_wa=stg_get("WA",0)
+			param_ws=val(stg_get("WS",0))
+
+			select case param_ws
+			case WLN_SECURITY_MODE_DISABLED:
+				wln_password=""
+			case WLN_SECURITY_MODE_WEP64,WLN_SECURITY_MODE_WEP128:
+				wln_password=stg_get("WP",0)
+		#if WLN_WPA	
+			case else:
+				if param_wa=stg_get("WA",1) and stg_get("WP",0)=stg_get("WP",1) and stg_sg("WK",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK and len(wln_password)=32 then
+				else
+					#if SUPPORTS_DISPLAY
+						lcd_show_wln_mkey_message()
+					#endif
+					pat.channel=0
+					pat.play(PAT_BOTH_LOOP,PL_PAT_CANINT)
+					wln_password=wln_wpa_mkey_get(stg_get("WP",0),stg_get("WA",0))
+					stg_set("WK",0,wln_password)
+					stg_set("WS",1,str(param_ws))
+					stg_set("WA",1,param_wa)
+					stg_set("WP",1,stg_get("WP",0))
+				end if
+		#endif	
+			end select
+			
+			if param_we=WE_ENABLED_PERMANENT then
+				#if DEV_DEBUG_PRINT
+					dev_debugprint("Start Wi-Fi")
+				#endif
+				
+				wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC)
+				if wln_recent_status<>WLN_STATUS_OK then
+					#if DEV_DEBUG_PRINT
+						dev_debugprint("Wi-Fi MALFUNCTIONED (could not start)")
+					#endif
+					wln_error=YES
+				end if
+				wln_already_started=YES
+			else
+				wln_stop()
+				wln_already_started=NO
+			end if
+		end if
+	#else
+		wln_error=NO
+		param_we=WE_DISABLED
+	#endif
+
+
+	'GPRS parameters
+	#if SUPPORTS_GPRS
+		gprs_error=NO
+		if param_ge<>GE_DISABLED then
+			param_ga=stg_get("GA",0)
+			param_gp=stg_get("GP",0)
+			if param_ge=GE_ENABLED_PERMANENT then
+				#if DEV_DEBUG_PRINT
+					dev_debugprint("Start GPRS")
+				#endif
+				if gprs_start(param_ga,param_gp)<>GPRS_STATUS_OK then
+					#if DEV_DEBUG_PRINT
+						dev_debugprint("GPRS MALFUNCTIONED (could not start)")
+					#endif
+					gprs_error=YES
+				end if
+				gprs_already_started=YES
+			else
+				gprs_already_started=NO
+			end if
+		end if
+	#else
+		param_ge=GE_DISABLED
+	#endif
+
+	'setup communication channels
+	for f=0 to NUM_SERIAL_PORTS-1
+		if port_in_use(f)=YES then
+			sock_comm(f)=sock_get("COMM")
+		end if
+		
+		sock.num=sock_comm(f)
+		ser.num=f
+		
+		if port_in_use(f)=NO then
+			sock.inconmode=PL_SOCK_INCONMODE_NONE
+		else
+			sock.allowedinterfaces="NET,WLN,PPP"
+			sock.connectiontout=val(stg_get("CT",f))*120 'because CT is in mins, property is in 1/2 sec intervals
+			sock.protocol=val(stg_get("TP",f))
+			sock.acceptbcast=val(stg_get("BU",f))
+			sock.inbandcommands=val(stg_get("IB",f))
+			param_rm(f)=val(stg_get("RM",f))
+			param_sf(f)=val(stg_get("SF",f))
+			set_sock_connmode(f) 'will set sock.inconmode and sock.reconmode		
+			sock.localportlist=stg_get("PN",f)
+			if sock.protocol=PL_SOCK_PROTOCOL_UDP then
+				sock.outport=val(sock.localportlist)
+			else
+				sock.outport=0
+			end if
+			param_cm(f)=val(stg_get("CM",f))
+			sock.targetip=stg_get("DI",f)
+			if sock.targetip="255.255.255.255" AND sock.protocol=PL_SOCK_PROTOCOL_UDP then sock.targetbcast=YES    
+			sock.targetport=val(stg_get("DP",f))
+			param_dt(f)=val(stg_get("DT",f))
+			param_ds(f)=val(stg_get("DS",f))
+			param_rc(f)=val(stg_get("RC",f))
+			param_op(f)=val(stg_get("OP",f))
+			param_nb(f)=val(stg_get("NB",f))
+			param_nd(f)=val(stg_get("ND",f))
+			overriding_destination_set(f)=NO
+			can_show_data_transmission(f)=NO
+			sock_connection_holdoff_tmr(f)=0
+		
+			'RTS and DTR lines
+			if ser.rtsmap<>PL_IO_NULL then
+				io.num=ser.rtsmap
+				io.enabled=YES
+			end if
+			if dtr_mapping(f)<>PL_IO_NULL then
+				io.num=dtr_mapping(f)
+				io.enabled=YES
+			
+				if param_dt(f)=NO then
+					io.state=param_ds(f)
+				else
+					io.state=LOW 'no connection
+				end if
+			end if
+			
+			'initialize notification variable
+			most_resent_notif_dest_ip(f)=""
+			most_resent_notif_dest_port(f)=0
+			io_state_changed(f)=0
+			dsr_state_curr(f)=0
+			dsr_state_prev(f)=0
+			dtr_state_curr(f)=0
+			dtr_state_prev(f)=0
+			cts_state_curr(f)=0
+			cts_state_prev(f)=0
+			rts_state_curr(f)=0
+			rts_state_prev(f)=0
+		end if
+	next f
+
+	'----- setup control sockets (NOTIF/TELNET/HTTP) and their buffers -----
+
+	'Primary command (UDP) port -- it's socket # must be below notif sockets, otherwise they will capture commands intended
+	'for this UDP socket
+	sock_udp=sock_get("UDP")
+	sock.num=sock_udp
+	sock.protocol=PL_SOCK_PROTOCOL_UDP
+	sock.localportlist="65535"
+	sock.allowedinterfaces="NET"
+	sock.inconmode=PL_SOCK_INCONMODE_ANY_IP_ANY_PORT
+	sock.reconmode=PL_SOCK_RECONMODE_3
+	sock.acceptbcast=YES
+	if sock.txbuffrq(SOCK_UDP_TXBUFF_SIZE)<>SOCK_UDP_TXBUFF_SIZE or sock.rxbuffrq(SOCK_UDP_RXBUFF_SIZE)<>SOCK_UDP_RXBUFF_SIZE then
+		goto boot_failed
+	end if
+	sys.buffalloc
+
+	'notification sockets -- must go after the UDP socket (see comment above)
+	for f=0 to NUM_SERIAL_PORTS-1
+		if port_in_use(f) then
+			sock_notif(f)=sock_get("NTF")
+			sock.num=sock_notif(f)
+			sock.protocol=PL_SOCK_PROTOCOL_UDP
+			sock.inconmode=PL_SOCK_INCONMODE_NONE
+			sock.reconmode=PL_SOCK_RECONMODE_2
+			sock.outport=65535
+			if sock.txbuffrq(1)<>1 then
+				goto boot_failed
+			end if
+		end if
+	next f
+	sys.buffalloc
+
+	'TELNET socket
+	sock_telnet=sock_get("TLNT")
+	sock.num=sock_telnet
+	sock.protocol=PL_SOCK_PROTOCOL_TCP
+	sock.localportlist="23"
+	sock.connectiontout=600
+	sock.allowedinterfaces="NET,WLN,PPP"
+	sock.inconmode=PL_SOCK_INCONMODE_ANY_IP_ANY_PORT
+	sock.reconmode= PL_SOCK_RECONMODE_3
+	if sock.txbuffrq(1)<>1 or sock.rxbuffrq(1)<>1 then
+		goto boot_failed
+	end if
+	sys.buffalloc	
+
+	'HTTP sockets
+	for f=0 to NUM_HTTP_SOCKETS-1
+		sock_http(f)=sock_get("HTTP")
+		sock.num=sock_http(f)
+		sock.protocol=PL_SOCK_PROTOCOL_TCP
+		sock.httpportlist="80"
+		sock.connectiontout=600
+		sock.allowedinterfaces="NET,WLN,PPP"
+		sock.inconmode=PL_SOCK_INCONMODE_ANY_IP_ANY_PORT
+		sock.reconmode= PL_SOCK_RECONMODE_0
+		sock.redir(PL_REDIR_SOCK0+sock_http(f))
+		if sock.txbuffrq(SOCK_HTTP_TXBUFF_SIZE)<>SOCK_HTTP_TXBUFF_SIZE or sock.varbuffrq(1)<>1 then
+			goto boot_failed
+		end if
+	next f
+	sys.buffalloc
+	
+
+	'this allocates channel buffers, puts channels in normal mode
+	x=0
+	if dhcp_used=YES then
+		x=x+val(dhcp_get_info(DHCP_INFO_ELEMENT_REQUIRED_BUFFERS,""))
+	end if
+	
+	#if WLN_AVAILABLE	
+		if param_we<>WE_DISABLED and wln_already_started=NO then  
+			x=x+val(wln_get_info(WLN_INFO_ELEMENT_REQUIRED_BUFFERS,str(param_ws)))
+		end if
+	#endif
+	
+	#if SUPPORTS_GPRS
+		if param_ge<>WE_DISABLED and gprs_already_started=NO then  
+			x=x+val(gprs_get_info(GPRS_INFO_ELEMENT_REQUIRED_BUFFERS,""))
+		end if
+	#endif
+	
+	enable_comm_channels(sys.freebuffpages-x)
+
+	#if POWER_ON_PIN9
+		if val(stg_get("PS",0))<>0 then
+			io.num=PL_IO_NUM_8_PWROUT
+			io.enabled=YES
+			#if PLATFORM_ID=DS1206
+				io.state=HIGH
+			#else
+				io.state=LOW
+			#endif
+		end if
+	#endif
+
+	'don't have established Ethernet link by now? Assume there is no link
+	if net.linkstate=PL_NET_LINKSTAT_NOLINK then
+		ethernet_link_state_change(PL_NET_LINKSTAT_NOLINK)
+	end if
+
+	pat_canint=NO 'this way the pattern below will not be screwed up
+	pat.channel=0
+	pat.play(PAT_THREE_BOTH_ONCE,PL_PAT_CANINT)
+	#if PER_CHANNEL_STATUS_INDICATION
+		for f=1 to NUM_SERIAL_PORTS
+			if port_in_use(f-1)=YES then
+				pat.channel=f
+				pat.play(PAT_TWO_SHORT_GREEN,PL_PAT_CANINT)
+			end if
+		next f
+	#endif
+	
+	#if BEEP_AVAILABLE
+		beep.divider=BEEP_DIVIDER
+		beep.play(BEEP_SHORT,PL_BEEP_CANINT)
+	#endif
+	
+	#if SUPPORTS_DISPLAY
+		lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_AGGRESSIVE,LCD_PRINT_ELEMENT_ALL)
+	#endif
+	
+	
+	exit sub 'boot completed!-----
+ 
+
+	'***** here when couldn't boot *****
+boot_failed:
+	pat.play(PAT_BLINK_BOTH_TOGETHER_FAST,PL_PAT_CANINT)
+h1:	goto h1		
+end sub

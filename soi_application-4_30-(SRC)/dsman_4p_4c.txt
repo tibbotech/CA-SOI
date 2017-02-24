@@ -1,0 +1,155 @@
+bit0	multi-port configuration
+bit1	multi-channel configuration, particulars depend on bits 13 and 14 
+bit2	Power on pin 9 available
+bit3	Wi-Fi available
+bit4	GPRS available
+bit5	serial port modes are 232, 485, and 422 (used for ports 2, 3, 4)
+bit6	serial port modes are full-duplex and half-duplex (used for ports 2, 3, 4)
+bit7	have serial port (channel) #2
+bit8	have serial port (channel) #3
+bit9	have serial port (channel) #4
+bit10	have 2 serial ports
+bit11	have 3 serial ports
+bit12	have 4 serial ports
+bit13	serial port 1 supports 232, 485, 422 so multi-channel configuration is only enabled for 232 (this bit works together with bit 1)
+bit14	serial port 1 doesn't support 232, 485, 422 so multi-channel configuration is always enabled (this bit works together with bit 1)
+bit15	<this bit is free>
+
+bits5432109876543210
+
+>>&b0000000000000000	I=$GENERAL;D=General;T=GROUP
+>>&b0000000000000000	I=ON;D=Owner name;T=STRING;C=EDIT;MAXLEN=8;F=R*
+>>&b0000000000000000	I=DN;D=Device name;T=STRING;C=EDIT;MAXLEN=8;F=R*
+>>&b0000000000000000	I=DH;D=DHCP;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;F=R
+>>&b0000000000000000	I=IP;D=IP-address;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
+>>&b0000000000000000	I=GI;D=Gateway IP-address;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
+>>&b0000000000000000	I=NM;D=Subnet mask;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
+>>&b0000010000000001	I=PC;D=Number of serial ports in use;T=INT;C=STATIC;O=0- One port/0/1- Two ports/1
+>>&b0000100000000001	I=PC;D=Number of serial ports in use;T=INT;C=STATIC;O=0- One port/0/1- Two ports/1/2- Three ports/2
+>>&b0001000000000001	I=PC;D=Number of serial ports in use;T=INT;C=STATIC;O=0- One port/0/1- Two ports/1/2- Three ports/2/3- Four ports/3
+>>&b0010000000000000	I=SI;D=Serial interface for channel 1;T=INT;C=STATIC;O=0- Full-duplex (RS232)/0/1- Half-duplex (RS485)/1/2- Full-duplex (RS422)/2
+>>&b0010000000000010	I=PC;D=Serial port configuration;T=INT;C=STATIC;O=Option 0/0/Option 1/1/Option 2/2/Option 3/3/Option 4/4/Option 5/5/Option 6/6/Option 7/7/Option 8/8/Option 9/9/Option 10/10/Option 11/11/Option 12/12/Option 13/13/Option 14/14;S=SI!=1?"e":"i";F=R*
+>>&b0100000000000010	I=PC;D=Serial port configuration;T=INT;C=STATIC;O=Option 0/0/Option 1/1/Option 2/2/Option 3/3/Option 4/4/Option 5/5/Option 6/6/Option 7/7/Option 8/8/Option 9/9/Option 10/10/Option 11/11/Option 12/12/Option 13/13/Option 14/14
+>>&b0000000000000100	I=PS;D=Power on pin 9;T=INT;C=STATIC;O=0- Off/0/1- On/1
+>>&b0000000000001000	I=$WI-FI;D=Wi-Fi;T=GROUP
+>>&b0000000000001000	I=WE;D=Wi-Fi Mode;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled (on demand)/1/2- Enabled (permanently)/2
+>>&b0000000000001000	I=WA;D=Access Point Name;T=STRING;C=EDIT;MAXLEN=32;S=WE!=0?"e":"i";F=R*
+>>&b0000000000001000	I=WS;D=Security;T=INT;C=STATIC;S=WE!=0?"e":"i";O=0- Disabled/0/1- WEP64/1/2- WEP128/2/3- WPA-PSK/3/4-WPA2-PSK/4          
+>>&b0000000000001000	I=WP;E=1;D=Password;T=STRING;C=EDIT;MAXLEN=32;S=WE!=0&&WS!=0?"e":"i";F=R*
+>>&b0000000000001000	I=WD;D=DHCP;T=INT;C=STATIC;S=WE!=0?"e":"i";F=R;O=0- Disabled/0/1- Enabled/1;
+>>&b0000000000001000	I=WI;D=IP-address;T=STRING;C=IPCTRL;S=WE!=0?"e":"i";F=R*
+>>&b0000000000001000	I=WG;D=Gateway IP-address;T=STRING;C=IPCTRL;S=WE!=0?"e":"i";F=R*
+>>&b0000000000001000	I=WN;D=Subnet mask;T=STRING;C=IPCTRL;S=WE!=0?"e":"i";F=R*
+
+>>&b0000000000010000	I=$GPRS;D=GPRS;T=GROUP
+>>&b0000000000010000	I=GE;D=GPRS Mode;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled (on demand)/1/2- Enabled (permanently)/2
+>>&b0000000000010000	I=GA;D=ATDT Command Parameter;T=STRING;C=EDIT;MAXLEN=16;S=GE!=0?"e":"i";F=R*
+>>&b0000000000010000	I=GP;D=GPRS access point name;T=STRING;C=EDIT;MAXLEN=16;S=GE!=0?"e":"i";F=R*
+
+>>&b0000000000000000	I=$CHANNEL1;D=Ch1;T=GROUP
+>>&b0000000000000000	I=CT;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT>255?"Maximum timeout is 255 minutes":""
+>>&b0000000000000000	I=TP;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1
+>>&b0000000000000000	I=BU;E=1;D=Broadcast UDP data;T=INT;C=STATIC;O=0- Reject/0/1- Accept/1;S=TP==0?"e":"i"
+>>&b0000000000000000	I=IB;E=1;D=Inband commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP==1?"e":"i"
+>>&b0000000000000000	I=RM;D=Routing Mode;T=INT;C=STATIC;O=0- Server (Slave)/0/1- Server OR client (master)/1/2- Client only/2
+>>&b0000000000000000	I=SF;E=1;D=Accept connection from;T=INT;C=STATIC;O=0- Any IP-address/0/1- IP matching destination IP-address/1;S=RM!=2?"e":"i"
+>>&b0000000000000000	I=PN;E=1;D=Port;T=INT;C=EDIT;V=PN>65534||PN==32767?"Port number must be between 0 and 65534 (excluding 32767)":"";S=RM!=2?"e":"i"
+>>&b0000000000000000	I=CM;E=1;D=Connection mode;T=INT;C=STATIC;O=0- Immediately (on powerup)/0/1- On data OR command/1/2- On command only/2/3- On command OR DSR=HIGH/3;S=RM!=0?"e":"i"
+>>&b0000000000000000	I=DI;E=1;D=Destination IP-address;T=STRING;C=IPCTRL;S=RM==1||RM==2||SF==1?"e":"i"
+>>&b0000000000000000	I=DP;E=1;D=Destination port;T=INT;C=EDIT;S=RM!=0?"e":"i"
+>>&b0000000000100000	I=SI;D=Serial interface for channel 1;T=INT;C=STATIC;O=0- Full-duplex (RS232)/0/1- Half-duplex (RS485)/1/2- Full-duplex (RS422)/2
+>>&b0000000001000000	I=SI;D=Serial interface for channel 1;T=INT;C=STATIC;O=0- Full-duplex/0/1- Half-duplex/1
+>>&b0000000000000000	I=FC;D=Flow control;T=INT;C=STATIC;O=0- Disabled OR remote /0/1- Local RTS-CTS/1/2- Local XON-XOFF/2
+>>&b0000000000000000	I=DT;D=DTR mode;T=INT;C=STATIC;O=0- Idle OR remote /0/1- Indicate connection status/1
+>>&b0000000000000000	I=DS;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT==0?"e":"i"
+>>&b0000000000000000	I=BR;D=Baudrate;T=INT;C=STATIC;O=8-150bps/8/9-300bps/9/10-600bps/10/0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13
+>>&b0000000000000000	I=PR;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
+>>&b0000000000000000	I=BB;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1
+>>&b0000000000000000	I=MD;D=Max intercharacter delay;T=INT;C=EDIT/SPIN/0/1/1/10;V=MD>255?"Maximum intercharacter delay is 255":""
+>>&b0000000000000000	I=SE;D=Soft entry into serial programming mode;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled (option1)/1/2- Enabled (option2)/2
+>>&b0000000000000000	I=EC;E=1;D=Escape character (ASCII code);T=INT;C=STATIC;M=CHARDLG;S=SE!=0?"e":"i";V=EC>255?"ASCII code cannot exceed 255":""
+>>&b0000000000000000	I=RC;D=On-the-Fly commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1
+>>&b0000000000000000	I=OP;E=1;D=Password for on-the-Fly commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=RC==1?"e":"i"
+>>&b0000000000000000	I=NB;D=Notification bitmask;T=INT;C=EDIT;M=NBITMASK;V=NB>255?"Bitmask must be in the range from 0 to 255":""
+>>&b0000000000000000	I=ND;D=Notification destination;T=INT;C=STATIC;O=0- Last port/0/1- Port 65535/1/;S=IB==0?"e":"i"
+
+>>&b0000000010000000	I=$CHANNEL2;D=Ch2;T=GROUP
+>>&b0000000010000000	I=CT@2;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT@2>255?"Maximum timeout is 255 minutes":""
+>>&b0000000010000000	I=TP@2;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1
+>>&b0000000010000000	I=BU@2;E=1;D=Broadcast UDP data;T=INT;C=STATIC;O=0- Reject/0/1- Accept/1;S=TP@2==0?"e":"i"
+>>&b0000000010000000	I=IB@2;E=1;D=Inband commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP@2==1?"e":"i"
+>>&b0000000010000000	I=RM@2;D=Routing Mode;T=INT;C=STATIC;O=0- Server (Slave)/0/1- Server OR client (master)/1/2- Client only/2
+>>&b0000000010000000	I=SF@2;E=1;D=Accept connection from;T=INT;C=STATIC;O=0- Any IP-address/0/1- IP matching destination IP-address/1;S=RM@2!=2?"e":"i"
+>>&b0000000010000000	I=PN@2;E=1;D=Port;T=INT;C=EDIT;V=PN@2>65534||PN@2==32767?"Port number must be between 0 and 65534 (excluding 32767)":"";S=RM@2!=2?"e":"i"
+>>&b0000000010000000	I=CM@2;E=1;D=Connection mode;T=INT;C=STATIC;O=0- Immediately (on powerup)/0/1- On data OR command/1/2- On command only/2/3- On command OR DSR=HIGH/3;S=RM@2!=0?"e":"i"
+>>&b0000000010000000	I=DI@2;E=1;D=Destination IP-address;T=STRING;C=IPCTRL;S=RM@2==1||RM@2==2||SF@2==1?"e":"i"
+>>&b0000000010000000	I=DP@2;E=1;D=Destination port;T=INT;C=EDIT;S=RM@2!=0?"e":"i"
+>>&b0000000010100000	I=SI@2;D=Serial interface;T=INT;C=STATIC;O=0- Full-duplex (RS232)/0/1- Half-duplex (RS485)/1/2- Full-duplex (RS422)/2
+>>&b0000000011000000	I=SI@2;D=Serial interface;T=INT;C=STATIC;O=0- Full-duplex/0/1- Half-duplex/1
+>>&b0000000010000000	I=FC@2;D=Flow control;T=INT;C=STATIC;O=0- Disabled OR remote /0/1- Local RTS-CTS/1/2- Local XON-XOFF/2
+>>&b0000000010000000	I=DT@2;D=DTR mode;T=INT;C=STATIC;O=0- Idle OR remote /0/1- Indicate connection status/1
+>>&b0000000010000000	I=DS@2;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT@2==0?"e":"i"
+>>&b0000000010000000	I=BR@2;D=Baudrate;T=INT;C=STATIC;O=8-150bps/8/9-300bps/9/10-600bps/10/0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13
+>>&b0000000010000000	I=PR@2;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
+>>&b0000000010000000	I=BB@2;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1
+>>&b0000000010000000	I=MD@2;D=Max intercharacter delay;T=INT;C=EDIT/SPIN/0/1/1/10;V=MD@2>255?"Maximum intercharacter delay is 255":""
+>>&b0000000010000000	I=SE@2;D=Soft entry into serial programming mode;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled (option1)/1/2- Enabled (option2)/2
+>>&b0000000010000000	I=EC@2;E=1;D=Escape character (ASCII code);T=INT;C=STATIC;M=CHARDLG;S=SE@2!=0?"e":"i";V=EC@2>255?"ASCII code cannot exceed 255":""
+>>&b0000000010000000	I=RC@2;D=On-the-Fly commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1
+>>&b0000000010000000	I=OP@2;E=1;D=Password for on-the-Fly commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=RC@2==1?"e":"i"
+>>&b0000000010000000	I=NB@2;D=Notification bitmask;T=INT;C=EDIT;M=NBITMASK;V=NB@2>255?"Bitmask must be in the range from 0 to 255":""
+>>&b0000000010000000	I=ND@2;D=Notification destination;T=INT;C=STATIC;O=0- Last port/0/1- Port 65535/1/;S=IB@2==0?"e":"i"
+
+>>&b0000000110000000	I=$CHANNEL3;D=Ch3;T=GROUP
+>>&b0000000110000000	I=CT@3;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT@3>255?"Maximum timeout is 255 minutes":""
+>>&b0000000110000000	I=TP@3;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1
+>>&b0000000110000000	I=BU@3;E=1;D=Broadcast UDP data;T=INT;C=STATIC;O=0- Reject/0/1- Accept/1;S=TP@3==0?"e":"i"
+>>&b0000000110000000	I=IB@3;E=1;D=Inband commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP@3==1?"e":"i"
+>>&b0000000110000000	I=RM@3;D=Routing Mode;T=INT;C=STATIC;O=0- Server (Slave)/0/1- Server OR client (master)/1/2- Client only/2
+>>&b0000000110000000	I=SF@3;E=1;D=Accept connection from;T=INT;C=STATIC;O=0- Any IP-address/0/1- IP matching destination IP-address/1;S=RM@3!=2?"e":"i"
+>>&b0000000110000000	I=PN@3;E=1;D=Port;T=INT;C=EDIT;V=PN@3>65534||PN@3==32767?"Port number must be between 0 and 65534 (excluding 32767)":"";S=RM@3!=2?"e":"i"
+>>&b0000000110000000	I=CM@3;E=1;D=Connection mode;T=INT;C=STATIC;O=0- Immediately (on powerup)/0/1- On data OR command/1/2- On command only/2/3- On command OR DSR=HIGH/3;S=RM@3!=0?"e":"i"
+>>&b0000000110000000	I=DI@3;E=1;D=Destination IP-address;T=STRING;C=IPCTRL;S=RM@3==1||RM@3==2||SF@3==1?"e":"i"
+>>&b0000000110000000	I=DP@3;E=1;D=Destination port;T=INT;C=EDIT;S=RM@3!=0?"e":"i"
+>>&b0000000110100000	I=SI@3;D=Serial interface;T=INT;C=STATIC;O=0- Full-duplex (RS232)/0/1- Half-duplex (RS485)/1/2- Full-duplex (RS422)/2
+>>&b0000000111000000	I=SI@3;D=Serial interface;T=INT;C=STATIC;O=0- Full-duplex/0/1- Half-duplex/1
+>>&b0000000110000000	I=FC@3;D=Flow control;T=INT;C=STATIC;O=0- Disabled OR remote /0/1- Local RTS-CTS/1/2- Local XON-XOFF/2
+>>&b0000000110000000	I=DT@3;D=DTR mode;T=INT;C=STATIC;O=0- Idle OR remote /0/1- Indicate connection status/1
+>>&b0000000110000000	I=DS@3;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT@3==0?"e":"i"
+>>&b0000000110000000	I=BR@3;D=Baudrate;T=INT;C=STATIC;O=8-150bps/8/9-300bps/9/10-600bps/10/0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13
+>>&b0000000110000000	I=PR@3;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
+>>&b0000000110000000	I=BB@3;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1
+>>&b0000000110000000	I=MD@3;D=Max intercharacter delay;T=INT;C=EDIT/SPIN/0/1/1/10;V=MD@3>255?"Maximum intercharacter delay is 255":""
+>>&b0000000110000000	I=SE@3;D=Soft entry into serial programming mode;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled (option1)/1/2- Enabled (option2)/2
+>>&b0000000110000000	I=EC@3;E=1;D=Escape character (ASCII code);T=INT;C=STATIC;M=CHARDLG;S=SE@3!=0?"e":"i";V=EC@3>255?"ASCII code cannot exceed 255":""
+>>&b0000000110000000	I=RC@3;D=On-the-Fly commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1
+>>&b0000000110000000	I=OP@3;E=1;D=Password for on-the-Fly commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=RC@3==1?"e":"i"
+>>&b0000000110000000	I=NB@3;D=Notification bitmask;T=INT;C=EDIT;M=NBITMASK;V=NB@3>255?"Bitmask must be in the range from 0 to 255":""
+>>&b0000000110000000	I=ND@3;D=Notification destination;T=INT;C=STATIC;O=0- Last port/0/1- Port 65535/1/;S=IB@3==0?"e":"i"
+
+>>&b0000001110000000	I=$CHANNEL4;D=Ch4;T=GROUP
+>>&b0000001110000000	I=CT@4;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT@4>255?"Maximum timeout is 255 minutes":""
+>>&b0000001110000000	I=TP@4;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1
+>>&b0000001110000000	I=BU@4;E=1;D=Broadcast UDP data;T=INT;C=STATIC;O=0- Reject/0/1- Accept/1;S=TP@4==0?"e":"i"
+>>&b0000001110000000	I=IB@4;E=1;D=Inband commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP@4==1?"e":"i"
+>>&b0000001110000000	I=RM@4;D=Routing Mode;T=INT;C=STATIC;O=0- Server (Slave)/0/1- Server OR client (master)/1/2- Client only/2
+>>&b0000001110000000	I=SF@4;E=1;D=Accept connection from;T=INT;C=STATIC;O=0- Any IP-address/0/1- IP matching destination IP-address/1;S=RM@4!=2?"e":"i"
+>>&b0000001110000000	I=PN@4;E=1;D=Port;T=INT;C=EDIT;V=PN@4>65534||PN@4==32767?"Port number must be between 0 and 65534 (excluding 32767)":"";S=RM@4!=2?"e":"i"
+>>&b0000001110000000	I=CM@4;E=1;D=Connection mode;T=INT;C=STATIC;O=0- Immediately (on powerup)/0/1- On data OR command/1/2- On command only/2/3- On command OR DSR=HIGH/3;S=RM@4!=0?"e":"i"
+>>&b0000001110000000	I=DI@4;E=1;D=Destination IP-address;T=STRING;C=IPCTRL;S=RM@4==1||RM@4==2||SF@4==1?"e":"i"
+>>&b0000001110000000	I=DP@4;E=1;D=Destination port;T=INT;C=EDIT;S=RM@4!=0?"e":"i"
+>>&b0000001110100000	I=SI@4;D=Serial interface;T=INT;C=STATIC;O=0- Full-duplex (RS232)/0/1- Half-duplex (RS485)/1/2- Full-duplex (RS422)/2
+>>&b0000001111000000	I=SI@4;D=Serial interface;T=INT;C=STATIC;O=0- Full-duplex/0/1- Half-duplex/1
+>>&b0000001110000000	I=FC@4;D=Flow control;T=INT;C=STATIC;O=0- Disabled OR remote /0/1- Local RTS-CTS/1/2- Local XON-XOFF/2
+>>&b0000001110000000	I=DT@4;D=DTR mode;T=INT;C=STATIC;O=0- Idle OR remote /0/1- Indicate connection status/1
+>>&b0000001110000000	I=DS@4;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT@4==0?"e":"i"
+>>&b0000001110000000	I=BR@4;D=Baudrate;T=INT;C=STATIC;O=8-150bps/8/9-300bps/9/10-600bps/10/0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13
+>>&b0000001110000000	I=PR@4;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
+>>&b0000001110000000	I=BB@4;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1
+>>&b0000001110000000	I=MD@4;D=Max intercharacter delay;T=INT;C=EDIT/SPIN/0/1/1/10;V=MD@4>255?"Maximum intercharacter delay is 255":""
+>>&b0000001110000000	I=SE@4;D=Soft entry into serial programming mode;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled (option1)/1/2- Enabled (option2)/2
+>>&b0000001110000000	I=EC@4;E=1;D=Escape character (ASCII code);T=INT;C=STATIC;M=CHARDLG;S=SE@4!=0?"e":"i";V=EC@4>255?"ASCII code cannot exceed 255":""
+>>&b0000001110000000	I=RC@4;D=On-the-Fly commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1
+>>&b0000001110000000	I=OP@4;E=1;D=Password for on-the-Fly commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=RC@4==1?"e":"i"
+>>&b0000001110000000	I=NB@4;D=Notification bitmask;T=INT;C=EDIT;M=NBITMASK;V=NB@4>255?"Bitmask must be in the range from 0 to 255":""
+>>&b0000001110000000	I=ND@4;D=Notification destination;T=INT;C=STATIC;O=0- Last port/0/1- Port 65535/1/;S=IB@4==0?"e":"i"

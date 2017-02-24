@@ -1,0 +1,207 @@
+'***********************************************************************************************************
+'			PROCEDURES INVOKED FROM HTML PAGES
+'***********************************************************************************************************
+
+include "global.tbh"
+
+public dim html_channel_index as byte
+dim it_was_save as no_yes
+dim html_setting_status as en_stg_status_codes(MAX_HTML_NUM_SETTINGS)
+
+'=============================================================
+public sub html_print_setting(html_descr_file as string(30),config_data as word)
+'Read the html_descr_file and print the settings that is in the file. 
+	dim i,b as word
+	dim setting_val, setting_str as string(50)
+	dim setting_name, setting_input_len as string(STG_MAX_SETTING_NAME_LEN)
+	dim setting_type, setting_input_type as string(1)
+	dim s,setting_option as string
+	dim pos1, pos2, stg_num as byte
+	dim result as en_stg_status_codes
+	dim flags as word
+	
+	romfile.open(html_descr_file)
+	i=romfile.find(romfile.pointer,">>",1)
+	b = 2
+	while i<>0
+		'doevents
+		setting_input_type = ""
+		setting_type = ""
+		setting_name = ""
+		setting_val = ""
+		setting_str = ""
+		setting_option = ""
+		romfile.pointer=i+2
+		do												'get the flags field
+			i=romfile.find(romfile.pointer,chr(TAB),1) 
+			if i=0 then exit sub
+			s=romfile.getdata(i-romfile.pointer)
+			romfile.pointer=i+1
+		loop while s=""
+		
+		flags=val(s)
+		if flags=0 or (flags and config_data)=flags then			
+			
+			do												'get the setting name (the setting name that is used in the settings file)
+				i=romfile.find(romfile.pointer,chr(TAB),1) 
+				if i=0 then exit sub
+				s=romfile.getdata(i-romfile.pointer)
+				romfile.pointer=i+1
+			loop while s=""
+			setting_name = s 		
+			do												'get the setting string (the string that is printed on the html page as setting name)
+				i=romfile.find(romfile.pointer,chr(TAB),1) 
+				if i=0 then exit sub
+				s=romfile.getdata(i-romfile.pointer)
+				romfile.pointer=i+1
+			loop while s="" 
+			setting_str = s		
+			do												'get the setting data, setting_input_type, I:input box, L:list box
+				i=romfile.find(romfile.pointer,chr(TAB),1) 
+				if i=0 then exit sub
+				s=romfile.getdata(i-romfile.pointer)
+				romfile.pointer=i+1
+			loop while s=""
+			pos1 = instr(1,s,CHR(44),1)
+			pos2 = instr(1,s,CHR(44),2)
+			setting_type = left(s,1)
+			setting_input_type = mid(s,pos1+1,1)			'if input type is list box(L), then setting data also contain the options for the list box
+			if setting_input_type = "L" then
+				setting_option = mid(s,pos2+1,len(s)-pos2)
+			end if											'if input type is input box(I), then setting data also contain the maximum input length
+			if setting_input_type = "I" then
+				setting_input_len = mid(s,pos2+1,len(s)-pos2)
+			end if
+				
+			sock_setsend("<tr><td width=80%><table width = 100% border = '1'><tr><td width=66%>")
+			
+			'using the setting name to find the actual values
+			stg_num=stg_find(setting_name)		
+			if stg_num = 0 then  'not found in the setting list
+				if it_was_save=NO then
+					result=device_spec_arg_sg(setting_name,setting_val,stg_num,EN_STG_GET)	
+					html_setting_status(stg_num)=result
+				else
+					device_spec_arg_sg(setting_name,setting_val,stg_num,EN_STG_GET)
+				end if		
+			else
+				stg_num = stg_num-1
+				if it_was_save=NO then
+					html_setting_status(stg_num)=stg_sg(setting_name,html_channel_index,setting_val,EN_STG_GET)	
+				else
+					stg_sg(setting_name,html_channel_index,setting_val,EN_STG_GET)	
+				end if
+			end if
+			if setting_type = "D" then 
+				setting_val = strgen(4-len(setting_val),"0")+setting_val
+				setting_val = left(setting_val,2)+"/"+right(setting_val,2)
+			end if
+			b = b + 1
+			if setting_input_type = "L" then
+				sock_setsend(setting_str)
+				sock_setsend("</td>")
+				sock_setsend("<td width=66%><select name="+chr(34)+setting_name+chr(34)+" size =1 STYLE='width: 100%' tabindex ='"+str(b)+"'>")
+				pos1 = 1
+				pos2=instr(1,setting_option,";",1)
+				
+				while pos2<>0
+					s = mid(setting_option,pos1,pos2-pos1)
+					sock_setsend("<option ")
+					pos1 = instr(1,s,"-",1)
+					if left(s,pos1-1)=setting_val then
+						sock_setsend("selected="+chr(34)+"selected"+chr(34)+" ")
+					end if
+					sock_setsend("value="+chr(34)+left(s,pos1-1)+chr(34)+">"+mid(s,pos1+1,len(s)-pos1)+"</option>")
+					pos1=pos2+1
+					pos2=instr(pos1,setting_option,";",1)
+				wend	
+				sock_setsend("</select></td>")
+			else
+				sock_setsend(setting_str)
+				sock_setsend("</td>")
+				sock_setsend("<td width=34%><input type="+chr(34)+"text"+chr(34)+" name="+chr(34)+setting_name+chr(34)+ " maxlength="+chr(34) + setting_input_len + chr(34)+" value="+chr(34))
+				sock_setsend(setting_val)
+				sock_setsend(chr(34)+" tabindex ='"+str(b)+"' class="+chr(34)+"input100"+chr(34)+"></td>")
+			end if
+			sock_setsend("</tr></table></td>")
+		'Print the setting status	
+			sock_setsend("<td width = 20% align=center>")
+			select case html_setting_status(stg_num)
+			case EN_STG_STATUS_OK:
+				'sock_setsend("<font color=Green>")
+				'sock_setsend("<b>OK</b>")
+			case EN_STG_STATUS_INVALID:
+				sock_setsend("<font color=Red>")
+				sock_setsend("<b>Invalid</b>")
+			case EN_STG_STATUS_UNKNOWN:
+				sock_setsend("<font color=Red>")
+				sock_setsend("<b>Unfound</b>")
+			case else:
+				sock_setsend("<font color=Red>")
+				sock_setsend("<b>Failed</b>")
+			end select
+			sock_setsend("</td></tr>")
+		end if
+		i=romfile.find(romfile.pointer,">>",1)
+	wend
+end sub
+
+'=============================================================
+public sub html_save_setting
+'Save the setting values
+	dim x, pos, pos1, stg_num as byte
+	dim setting_name as string(STG_MAX_SETTING_NAME_LEN)
+	dim setting_val as string(50)
+	dim result as en_stg_status_codes
+	dim http_req_string as string
+	
+	pos = 1
+	http_req_string = sock.httprqstring
+	html_spec_chr_convert(http_req_string)
+	x=instr(pos,http_req_string,"=",2)
+	pos1 = instr(1,http_req_string,"&",1)
+
+	it_was_save=NO
+	while x<>0
+		'doevents
+		it_was_save=YES
+		setting_name=mid(http_req_string,pos1+1,x-pos1-1)
+		stg_num=stg_find(setting_name)
+		
+		if stg_num<>0 then
+			stg_num=stg_num-1
+			setting_val = get_http_argument(http_req_string,setting_name+"=")
+			if device_setting_check(setting_name,setting_val) = ng then 
+				html_setting_status(stg_num) = EN_STG_STATUS_INVALID
+				goto next_setting
+			end if
+			html_setting_status(stg_num)=stg_sg(setting_name,html_channel_index,setting_val,EN_STG_SET)
+			if html_setting_status(stg_num) = EN_STG_STATUS_OK then device_setting_set(setting_name,0,setting_val)
+		else
+			setting_val = get_http_argument(http_req_string,setting_name+"=")
+			result=device_spec_arg_sg(setting_name,setting_val,stg_num,EN_STG_SET)	
+			html_setting_status(stg_num)=result
+		end if
+next_setting:
+		pos1 = instr(pos1+1,http_req_string,"&",1)
+		pos=x+1
+		x=instr(pos,http_req_string,"=",1)
+	wend	
+end sub
+
+'=============================================================
+public sub html_channel_selected
+	dim i as byte
+
+	if NUM_SERIAL_PORTS>1 then
+		sock_setsend("<select name = 'ch' onchange=PortSelected(this.value) STYLE='width: 100%'>")
+		for i = 0 to NUM_SERIAL_PORTS-1
+			if i = html_channel_index then
+				sock_setsend("<option value = '"+str(i)+"' selected='selected'>Channel "+str(i+1)+"</option>")
+			else
+				sock_setsend("<option value = '"+str(i)+"' >Channel "+str(i+1)+"</option>")
+			end if
+		next i	
+		sock_setsend("</select>")
+	end if
+end sub

@@ -1,0 +1,105 @@
+<?
+	include "global.tbh"
+	html_channel_index = 2
+?>
+
+<html>
+<HEAD>
+<META HTTP-EQUIV="Expires" CONTENT="Tue, 01 Jan 1980 1:00:00 GMT">
+<META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+
+<script type="text/javascript">
+
+function PortSelected(channel)
+{
+  switch(channel)
+  {
+  case 1:
+	window.self.location.replace("routing_status1.html");
+	break;
+  case 2:
+	window.self.location.replace("routing_status2.html");
+	break;
+  case 3:
+	window.self.location.replace("routing_status3.html");
+	break;
+  case 4:
+	window.self.location.replace("routing_status4.html");
+	break;
+  default:
+    window.self.location.replace("routing_status1.html");
+  }
+}
+
+</script>
+<style type="text/css">
+h1,h2,h3
+{
+color: #663144;
+font-family: arial, 'sans serif'; 
+text-align:center;
+}
+
+p,table,li,address
+{
+font-family: arial, 'sans serif'; 
+border-spacing: 1px
+}
+
+p,li,th,td
+{
+font-size: 100%;
+color: #3A161A
+}
+
+th {background-color:#E8ECED }
+
+body
+{
+background-color: #E0D6B8;
+}
+
+a
+{
+float:left;
+text-decoration:none;
+color:#E0D6B8;
+background-color:#663144;
+padding:0.2em 0.6em;
+}
+a:hover {background-color:#76A0B0;}
+li {display:inline;}
+</style>
+</HEAD>
+
+<body>
+<div>
+<br>
+	<table width='600' align=center border="0" cellspacing="0" cellpadding="0" >
+		<tr><td width = 80%> <h3> Routing Status </h3> </td>
+		</tr>
+		<tr><td>
+			<?html_channel_selected?>
+		</td></tr>
+		<tr><td><br></td></tr>
+		<tr align=left>
+			<td><table width=100% border="1" cellspacing="1" cellpadding="1"><tr> 
+				<th width = 100%><b>Routing Buffers</b></th>
+			</tr>
+			</table>
+			</td>
+		</tr>		
+		<tr align=left>
+			<td><table width=100% border="1" cellspacing="1" cellpadding="1"><tr> 
+				<td width = 66%>Ethernet -> Serial(data/capacity)</td>
+				<td width = 34%> 93/510 </td>	
+			</tr>
+			</table>
+			</td>
+		</tr >
+
+
+	</table>
+</div>
+</body>
+</html>

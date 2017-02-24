@@ -1,0 +1,8 @@
+CONST HTML_CONFIRM_LOG_OFF = "Would you like to log out?"
+CONST HTML_CONFIRM_INITIALIZE = "Would you like to initialize the device? \\nSome of the settings will only be effective after reboot!"
+CONST HTML_CONFIRM_REBOOT = "Would you like to reboot the device? \\nIP address of the device might change after reboot!"
+CONST HTML_LOGGED_OUT = "<b>Logged out.</b>"
+CONST HTML_INVALID_LOGIN = "<b>Invalid password. Please try again.</b>"
+CONST HTML_INVALID_SESSION = "<b>Invalid session ID, or other user is currently logged in, please log in again.</b>"
+CONST HTML_NO_PRIORITY = "<b>Another user is currently logged in from a client with higher priority.</b>"
+CONST HTML_NOT_LOGGED_IN = "<b>You are not logged in. This could be because your login session has expired OR because another session with higher priority has started</b>"

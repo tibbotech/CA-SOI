@@ -1,0 +1,31 @@
+
+enum print_routing_data_fragments
+	PRD_IU,
+	PRD_ES,
+	PRD_SE,
+	PRD_NI,
+	PRD_CS,
+	PRD_LP,
+	PRD_RI,
+	PRD_RP,
+	PRD_PS,
+	PRD_CM,
+	PRD_BR,
+	PRD_FC,
+	PRD_PR,
+	PRD_DB,
+	PRD_CTS,
+	PRD_DSR,
+	PRD_RTS,
+	PRD_DTR
+end enum
+
+
+
+declare sub sock_setsend(byref s as string)
+declare sub html_spec_chr_convert(byref http_req_string as string)
+
+declare function get_http_argument(byref http_req_string as string, byref argument as string) as string
+declare function mod_http_argument(byref http_req_string as string, byref argument as string, byref arg_val as string) as string
+declare sub html_proc_cmd
+declare sub print_routing_data(channel_num as byte, fragment_num as print_routing_data_fragments)

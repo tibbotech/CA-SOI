@@ -1,0 +1,1853 @@
+'***********************************************************************************************************
+'			DS MANAGER LIBRARY
+'***********************************************************************************************************
+
+include "global.tbh"
+'--------------------------------------------------------------------------------
+const DSMAN_STAMP="DSMAN> "
+const DSMAN_CR_LF=chr(13)+chr(10)
+const DSMAN_END_OF_LINE=13
+const DSMAN_FIELD_SEPARATOR=9
+
+'------------------------------------------------------------------------------
+declare function dsman_get_descriptor_field(line_end_pos as word, byref field_start_pos as word) as string
+declare sub dsman_debugprint(byref print_data as string)
+
+'------------------------------------------------------------------------------
+dim net_cmd_bcast_sel as no_yes
+dim fware_block_ctr as word
+public dim telnet_cmd_str as string(MAX_NET_CMD_LEN)
+public dim num_sdf as byte
+public dim sdf_addr(DSMAN_MAX_NUM_LINES) as word
+public dim sdf_len(DSMAN_MAX_NUM_LINES) as byte
+public dim sock_udp as byte
+public dim ser_cmd_str as string(MAX_SER_CMD_LEN)
+public dim manufacture_flag as byte=0 'steve
+public dim manufacture_login as no_yes=NO
+
+'==============================================================================
+public function dsman_start(config_data as word) as en_dsman_status_codes
+
+	dim sdf_addr_member as byte
+	dim line_end,field_start_pos as word
+	dim s as string
+	dim i as word
+	dim num_all_sdf as byte
+
+	dsman_start=EN_DSMAN_STATUS_OK
+
+	#if DSMAN_DEBUG_PRINT
+		dsman_debugprint("---START---")
+	#endif
+
+	if DSMAN_MAX_NUM_LINES=0 or DSMAN_MAX_NUM_LINES>255 then
+		#if DSMAN_DEBUG_PRINT
+			dsman_debugprint("ERROR: DSMAN_MAX_NUM_LINES must be between 1 and 255, you now have '#DSMAN_MAX_NUM_LINES "+str(DSMAN_MAX_NUM_LINES)+"'.")
+		#endif
+		num_sdf=0 'DSMAN_MAX_NUM_LINES must be between 1 and 255.
+		dsman_start=EN_DSMAN_STATUS_WRONG_DEFINE
+		exit function
+	end if
+
+	romfile.open(DSMAN_DESCRIPTOR_FILE)
+	if romfile.size=0 then
+		#if DSMAN_DEBUG_PRINT
+			dsman_debugprint("ERROR: '"+DSMAN_DESCRIPTOR_FILE+"' is not in your project or file is empty.")
+		#endif
+		num_sdf=0 'DS Manager item descriptor file is not in your project (or file is empty)
+		dsman_start=EN_DSMAN_STATUS_WRONG_DESCRIPTOR
+		exit function
+	end if
+
+	
+	num_sdf=0 'will count all active lines in the file
+	num_all_sdf=0 ' will count ALL lines, including those that are inactive
+	sdf_addr_member=0 'will select adf_addr array member (follows num_sdf but is limited by array size)
+	
+	i=romfile.find(romfile.pointer,">>",1)
+	while i<>0
+		'we are now at the ">>" pointing at the beginning of one item line
+		romfile.pointer=i+2
+		
+		'find the end of this line (or the end of file)
+		line_end=romfile.find(romfile.pointer,chr(DSMAN_END_OF_LINE),1)
+		if line_end=0 then
+			line_end=romfile.size+1
+		end if
+		
+		'extract flags field
+		s=dsman_get_descriptor_field(line_end,field_start_pos)			
+		if s="" then
+			'missing flags field
+			#if DSMAN_DEBUG_PRINT
+				dsman_debugprint("ERROR (item #"+str(num_all_sdf)+"): missing flags field (items are counted from 0).")
+			#endif
+			num_sdf=0
+			dsman_start=EN_DSMAN_STATUS_WRONG_DESCRIPTOR
+			exit function
+		end if
+		
+		'process flags field
+		i=val(s)
+		if i=0 or (i and config_data)=i then
+			'extract item contents field
+			s=dsman_get_descriptor_field(line_end,field_start_pos)
+			if s="" then
+				'missing item contents field
+				#if DSMAN_DEBUG_PRINT
+					dsman_debugprint("ERROR (item #"+str(num_all_sdf)+"): missing item contents field (items are counted from 0).")
+				#endif
+				num_sdf=0
+				dsman_start=EN_DSMAN_STATUS_WRONG_DESCRIPTOR
+				exit function
+			end if
+			'save item contents field position
+			sdf_addr(sdf_addr_member)=field_start_pos
+			sdf_len(sdf_addr_member)=line_end-field_start_pos
+
+			if sdf_addr_member<DSMAN_MAX_NUM_LINES-1 then
+				sdf_addr_member=sdf_addr_member+1
+			end if
+			num_sdf=num_sdf+1
+		end if
+		num_all_sdf=num_all_sdf+1
+	
+		i=romfile.find(romfile.pointer,">>",1)
+	wend
+
+	if num_sdf>DSMAN_MAX_NUM_LINES then
+		#if DSMAN_DEBUG_PRINT
+			dsman_debugprint("ERROR: total number of active lines is "+str(num_sdf)+" while you have 'DSMAN_MAX_NUM_LINES "+str(DSMAN_MAX_NUM_LINES)+"'.")
+		#endif
+		num_sdf=0 'you need to increase DSMAN_MAX_NUM_LINES!
+		dsman_start=EN_DSMAN_STATUS_WRONG_DEFINE
+		exit function
+	end if
+
+	#if DSMAN_DEBUG_PRINT
+		dsman_debugprint("Total number of lines: "+str(num_all_sdf))
+		dsman_debugprint("Number of active lines: "+str(num_sdf))
+		if num_sdf<DSMAN_MAX_NUM_LINES then
+			dsman_debugprint("YOU ARE WASTING MEMORY!!! Set 'DSMAN_MAX_NUM_LINES "+str(num_sdf)+"'. It is now "+str(DSMAN_MAX_NUM_LINES)+".")
+			dsman_debugprint("[But remember that you may have more active lines when argument config_data changes.]")
+		end if
+	#endif
+
+end function
+
+'------------------------------------------------------------------------------
+sub sock_closed_check_net_login(sock_num as byte)
+'Socket connection has been closed. Was somebody logged in on this socket?
+
+	select case login_mode
+	case CMD_MODE_INBAND,
+		 CMD_MODE_TELNET,
+		 CMD_MODE_UDP:
+			if login_sock=sock_num then logout()
+	end select
+end sub
+
+'------------------------------------------------------------------------------
+public sub net_cmd_proc(byref s as string(MAX_NET_CMD_LEN), cmd_mode as cmd_modes, byref cmd_data as string(32), cmd_bcast as no_yes, error_mode as no_yes)
+	dim ss as string (1)
+	dim stg_data as string(32)
+	dim x,pos,pos2,f as byte
+	dim ser_num as string(9) 'to keep serial number of commands (command ID)
+	dim cmd_src_valid as no_yes
+	dim index as byte
+	dim s2 as string(64)
+	dim reply_str as string(MAX_NET_RPL_LEN)
+	dim ip_change_needed as no_yes
+	dim ser_port_num as byte
+	dim curr_block_num,num_sectors as word
+	dim setting_name as string(STG_MAX_SETTING_NAME_LEN)
+	dim explicit_index as no_yes
+	dim cmd_sock as byte
+	dim i as word
+	dim tmr as word 'steve
+	
+	cmd_sock=sock.num	'memorize on which socket we have received this command
+	ip_change_needed=NO
+	reply_str="" 		'will prepare our reply here
+
+	'is command coming from the same source that has performed the most recent login?
+	if login_data=cmd_data then
+		cmd_src_valid=YES
+	else
+		cmd_src_valid=NO
+	end if
+
+	'is this a broadcast without pre-selection?
+	if cmd_bcast = YES and net_cmd_bcast_sel = NO then
+		'YES, so see if this is allowed for the current command
+		ss=left(s,1)
+		if ss<>"X" and ss<>"U" and ss<>"A" and ss<>"W" and ss<>"V" and ss<>"T" and ss<>"M" then
+			goto reply_null
+		end if
+	end if
+
+	'see if command got serial number, separate it if so (special processing for "D")
+	ser_num=""
+	if left(s,1)="D" then
+		x=instr(132,s,"|",1)
+	else
+		x=instr(1,s,"|",1)
+	end if
+	if x>0 then
+		ser_num=right(s,len(s)-x+1)
+		s=left(s,x-1)
+	end if
+
+	'default index depends on the communication channel
+	index=0 'first, assume the first channel
+	for f=0 to NUM_SERIAL_PORTS-1
+		if sock_comm(f)=sock.num then
+			index=f
+		end if
+	next f
+	
+	'see of command has escape sequence included (except for "D" command)
+	explicit_index=NO
+	if left(s,1)<>"D" then
+		x=instr(1,s,CMD_ESC_CHAR,1)
+		if x>0 then
+			'yes, the sequence is included -- extract it
+			index=val(mid(s,x+1,1))
+			s2=right(s,len(s)-x-1)
+			s=left(s,x-1)+s2
+			if index>0 then index=index-1
+			if index>=NUM_SERIAL_PORTS then goto reply_err
+			explicit_index=YES
+		end if
+	end if
+
+	if cmd_src_valid=YES then reset_login_timeout() 'resets timeouts
+
+	select case left(s,1)
+
+	case "X": 'echo command (device info) -----------------------
+		if sock.currentinterface=PL_SOCK_INTERFACE_NET then
+			reply_str=net.mac
+		else
+			#if WLN_AVAILABLE
+				reply_str=wln.mac
+			#endif
+		end if
+		reply_str=reply_str+"/00000"+stg_get("PN",0)+get_x_flags_network(sock.currentinterface)+"/"+stg_get("ON",0)+"/"+stg_get("DN",0)+"/"+str(NUM_SERIAL_PORTS)
+		goto reply_ok_have_data
+
+
+	case "G": 'get setting --------------------------------------
+		if cmd_src_valid=NO then goto reply_denied
+		
+		setting_name=mid(s,2,2)
+		if stg_get_num_members(setting_name,x)<>EN_STG_STATUS_OK then goto reply_err
+		if index>=x then
+			'index is out of range
+			if explicit_index=YES then
+				goto reply_err 'index was specified, so this is an error
+			else
+				'index was "figured out automatically", but this setting has a single value
+				'for the entire device. We simply reset the index
+				index=0 
+			end if
+		end if
+		
+		select case stg_sg(setting_name,index,reply_str,EN_STG_GET)
+		case EN_STG_STATUS_OK:
+			goto reply_ok_have_data
+		case EN_STG_STATUS_UNKNOWN:
+			goto reply_err
+		case EN_STG_STATUS_INVALID_INDEX:
+			goto reply_err
+		case else:
+			goto reply_failed
+		end select
+
+
+	case "S": 'set setting --------------------------------------
+		if cmd_src_valid=NO then goto reply_denied
+
+		setting_name=mid(s,2,2)
+		if stg_get_num_members(setting_name,x)<>EN_STG_STATUS_OK then goto reply_err
+		if index>=x then
+			'index is out of range
+			if explicit_index=YES then
+				goto reply_err 'index was specified, so this is an error
+			else
+				'index was "figured out automatically", but this setting has a single value
+				'for the entire device. We simply reset the index
+				index=0 
+			end if
+		end if
+
+		select case stg_sg(setting_name,index,right(s,len(s)-3),EN_STG_SET)
+		case EN_STG_STATUS_OK:
+			goto reply_ok_have_data
+		case EN_STG_STATUS_INVALID:
+			goto reply_err
+		case EN_STG_STATUS_INVALID_INDEX:
+			goto reply_err
+		case EN_STG_STATUS_UNKNOWN:
+			goto reply_err
+		case else:
+			goto reply_failed
+		end select
+	
+
+	case "T": 'return own IP ------------------------------------
+		reply_str=sock.remoteip
+		goto reply_ok_have_data	
+
+
+	case "U": 'extented device status info ----------------------
+
+		if index=0 or index>NUM_SERIAL_PORTS then
+			index=1 'valid index range for this command is 1...NUM_SERIAL_PORTS
+		end if
+
+		sock.num=sock_comm(index) 'sock.num is restored in the end of procedure, before sending reply
+		ser_port_num=ser.num 'we will restore serial port selection later
+		ser.num=index
+
+		reply_str=sock.remoteip+"/"+str(sock.remoteport)+"/"+str(ser.txlen)+"/"+str(ser.txbuffsize)+"/"
+		reply_str=reply_str+str(sock.txlen)+"/"+str(sock.txbuffsize-sock.txfree)+"/"+str(sock.txbuffsize)+"/"
+		reply_str=reply_str+str(baudrate_get())+"/"
+	
+		if ser.enabled=NO then
+			reply_str=reply_str+"*"
+		else
+			reply_str=reply_str+"O"
+		end if
+	
+		if ser.interface=PL_SER_SI_FULLDUPLEX then
+			reply_str=reply_str+"F"
+		else
+			reply_str=reply_str+"H"
+		end if
+	
+		if ser.flowcontrol=DISABLED then
+			reply_str=reply_str+"*"
+		else
+			reply_str=reply_str+"R"
+		end if
+	
+		select case ser.parity
+			case PL_SER_PR_NONE:
+				reply_str=reply_str+"*"
+			case PL_SER_PR_EVEN:
+				reply_str=reply_str+"E"
+			case PL_SER_PR_ODD:
+				reply_str=reply_str+"O"
+			case PL_SER_PR_MARK:
+				reply_str=reply_str+"M"
+			case else:
+				reply_str=reply_str+"S"
+		end select
+	
+		if ser.bits=PL_SER_BB_7 then
+			reply_str=reply_str+"7"
+		else
+			reply_str=reply_str+"8"
+		end if
+	
+		reply_str=reply_str+"/"
+	
+		io.num=ser.rtsmap
+		if io.state=LOW then
+			reply_str=reply_str+"R"
+		else
+			reply_str=reply_str+"*"
+		end if
+		
+		io.num=cts_mapping(index)
+		if io.state=LOW then
+			reply_str=reply_str+"C"
+		else
+			reply_str=reply_str+"*"
+		end if
+		
+		io.num=dtr_mapping(index)
+		if io.state=LOW then
+			reply_str=reply_str+"T"
+		else
+			reply_str=reply_str+"*"
+		end if
+		
+		io.num=dsr_mapping(index)
+		if io.state=LOW then
+			reply_str=reply_str+"S"
+		else
+			reply_str=reply_str+"*"
+		end if
+		
+		ser.num=ser_port_num
+		goto reply_ok_have_data
+
+
+	case "B": 'buzz the device ---------------------------------- OK
+		pat.channel=0
+		pat.play(PAT_BLINK_BOTH_IN_TURNS_FAST,YES)
+		goto reply_ok
+	
+
+	case "A": 'assign new IP-address ----------------------------
+		
+		'extract MAC field and compare it to ours
+		pos=instr(1,s,"/",1)
+		if pos=0 then goto reply_null
+		s2=mid(s,2,pos-2)
+		
+		if sock.currentinterface=PL_SOCK_INTERFACE_NET then
+			if ddval(s2)<>ddval(net.mac) then goto reply_null
+		else
+			#if WLN_AVAILABLE
+				if ddval(s2)<>ddval(wln.mac) then goto reply_null
+			#endif
+		end if
+		
+		if login(cmd_mode,cmd_data,sock.num)=NG then goto reply_denied
+		logout()
+		
+		'extract password field and compare to ours (unless in error_mode)
+		pos2=instr(1,s,"/",2)
+		if pos2=0 then goto reply_err
+		s2=mid(s,pos+1,pos2-pos-1)
+		if error_mode=NO then
+			if stg_sg("PW",0,reply_str,EN_STG_GET)=EN_STG_STATUS_OK then
+				if s2<>reply_str then goto reply_denied
+			end if
+		end if
+		
+		'set new setting value
+		s2=right(s,len(s)-pos2)
+		
+		if sock.currentinterface=PL_SOCK_INTERFACE_NET then
+			if stg_sg("IP",0,s2,EN_STG_SET)<>EN_STG_STATUS_OK then goto reply_failed
+		else
+			if stg_sg("WI",0,s2,EN_STG_SET)<>EN_STG_STATUS_OK then goto reply_failed
+		end if
+		
+		'set the flag to remember that we will need to change IP!
+		ip_change_needed=YES 
+		goto reply_ok
+
+	
+	case "L": 'login --------------------------------------------
+		
+		'verify password
+		stg_data=stg_get("PW",0)		
+
+		'we verify password only when NOT in the error mode
+		if error_mode=NO then
+			if right(s,len(s)-1)<> stg_data then goto reply_denied
+		end if
+	
+		'can we accept the login in principle (means, no higher-priority session in progress)? 
+		if login(cmd_mode,cmd_data,sock.num)=NG then goto reply_rejected
+		goto reply_ok
+
+
+	case "O": 'logout -------------------------------------------
+		if cmd_src_valid=NO then goto reply_denied
+		logout()
+		goto reply_ok
+
+	case "I": 'initialize settings --------------------------
+		if cmd_src_valid=NO then goto reply_denied
+		if stg_restore_multiple(EN_STG_INIT_MODE_NORMAL)<>EN_STG_STATUS_OK then goto reply_failed
+		goto reply_ok
+		
+
+	case "i": 'initialize settings for selected channel --------------------------
+		if cmd_src_valid=NO then goto reply_denied
+		if init_settings_of_one_channel(index)=NG then goto reply_failed
+		goto reply_ok
+		
+
+	case "E": 'reboot -------------------------------------------
+		if cmd_src_valid=NO then goto reply_denied
+		sys.reboot
+		
+
+	case "V": 'version string -----------------------------------
+		reply_str=FIRMWARE_VERSION
+		goto reply_ok_have_data
+		
+
+	case "W": 'select in broadcast mode -------------------------
+		net_cmd_bcast_sel=NO
+		reply_str=right(s,len(s)-1)
+		if sock.currentinterface=PL_SOCK_INTERFACE_NET then
+			if ddval(reply_str)<>ddval(net.mac) then goto reply_null
+		else
+			#if WLN_AVAILABLE
+				if ddval(reply_str)<>ddval(wln.mac) then goto reply_null
+			#endif
+		end if
+		net_cmd_bcast_sel=YES
+		goto reply_ok
+		
+
+	case "H": 'hardware version (legacy command) ----------------
+		reply_str="1A"
+		goto reply_ok_have_data
+
+
+
+	case "C","": 'number of SDF lines to load (new command) --------
+		
+		select case mid(s,2,1)
+		case "S","":	
+			reply_str=str(num_sdf)
+			
+		case "U":
+			reply_str=str(9)
+			
+		case else:
+			goto reply_err
+		end select
+		goto reply_ok_have_data		
+	
+
+	case "F": 'get specified SDF line ---------------------------
+		
+		f=asc(mid(s,2,1))
+		if f>=&h30 and f<=&h39 then
+			x=val(right(s,len(s)-1)) 'one char in command
+			goto d1
+		else
+			x=val(right(s,len(s)-2)) 'two chars in command
+		end if
+		
+		select case mid(s,2,1)
+		case "S":
+d1:			if x>=num_sdf then goto reply_err
+			romfile.open(DSMAN_DESCRIPTOR_FILE)
+			romfile.pointer=sdf_addr(x)
+			reply_str=romfile.getdata(sdf_len(x))
+			
+		case "U":
+			
+			sock.num=sock_comm(index)
+			ser.num=index
+			
+			select case x
+			case 0:
+				reply_str=reply_str+"<head><style type='text/css'>table{border-collapse:collapse;font:11px arial;background-color:#C0C0C0}td.head{color:white;background-color:#648CC8}</style></head>"
+
+			case 1:
+				reply_str=reply_str+"<body><table width=100% bgcolor=#C0C0C0 border='1'>"
+				if port_in_use(index)=NO then
+					reply_str=reply_str+"<tr><td colspan=2><font color='red'><b>This port is currently disabled or unavailable.</b></font></td></tr>"
+				end if
+				reply_str=reply_str+"<tr><td colspan=2 class='head'>Routing Buffers</td></tr>"
+
+			case 2:
+
+				reply_str=reply_str+"<tr><td>Ethernet -> Serial (data/capacity)</td><td>"
+				if overrun_es(index)<>NO then reply_str=reply_str+"<font color='red'>"
+				reply_str=reply_str+str(ser.txlen)+"/"+str(ser.txbuffsize)
+				if overrun_es(index)<>NO then reply_str=reply_str+" (overrun)</font>"
+				reply_str=reply_str+"</td></tr>"
+
+				reply_str=reply_str+"<tr><td>Serial -> Ethernet (data/capacity)</td><td>"
+				if overrun_se(index)<>NO then reply_str=reply_str+"<font color='red'>"
+				reply_str=reply_str+str(sock.txlen)+"/"+str(sock.txbuffsize)
+				if overrun_se(index)<>NO then reply_str=reply_str+" (overrun)</font>"
+				reply_str=reply_str+"</td></tr>"
+
+			case 3:
+				reply_str=reply_str+"<tr><td colspan=2 class='head'>Network Connection</td></tr>"
+
+				reply_str=reply_str+"<tr><td>Network Interface</td><td>"
+				select case current_interface
+				case PL_SOCK_INTERFACE_NET:
+					s2="Ethernet"
+				
+			#if WLN_AVAILABLE	
+				case PL_SOCK_INTERFACE_WLN:
+					s2="Wi-Fi"
+			#endif	
+				
+				case PL_SOCK_INTERFACE_PPP:
+					s2="GPRS"
+				end select
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+				
+			case 4:
+				reply_str=reply_str+"<tr><td>Connection State</td><td>"
+				select case sock.statesimple
+				case PL_SSTS_CLOSED, PL_SSTS_PC, PL_SSTS_AC:
+					'no connection at this time
+					select case sock.state
+					case PL_SST_CL_PRESET_POPENING,
+						 PL_SST_CL_PRESET_AOPENING,
+						 PL_SST_CL_PRESET_EST,
+						 PL_SST_CL_PRESET_PCLOSING,
+						 PL_SST_CL_PRESET_ACLOSING,
+						 PL_SST_CL_PRESET_STRANGE:
+						'connection was reset by the other end
+						s2="Reset (by remote host)"
+					case else:
+						'idle (and not because it was reset by other end)
+						s2="Idle"
+					end select
+
+				case PL_SSTS_ARP, PL_SSTS_PO, PL_SSTS_AO:
+					'connection is being established
+					s2="Opening"
+				
+				case PL_SSTS_EST:
+					s2="Established"
+				end select
+
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+
+				reply_str=reply_str+"<tr><td>Local Port</td><td>"
+				reply_str=reply_str+str(sock.localport)
+				reply_str=reply_str+"</td></tr>"
+
+				reply_str=reply_str+"<tr><td>Remote IP</td><td>"
+				reply_str=reply_str+sock.remoteip
+				reply_str=reply_str+"</td></tr>"
+			
+			case 5:
+			
+				reply_str=reply_str+"<tr><td>Remote Port</td><td>"
+				reply_str=reply_str+str(sock.remoteport)
+				reply_str=reply_str+"</td></tr>"
+
+				reply_str=reply_str+"<tr><td colspan=2 class='head'>Serial Port</td></tr>"
+			
+				reply_str=reply_str+"<tr><td>Port State</td><td>"
+				if ser.enabled=NO then s2="Closed" else s2="Opened"
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+
+				reply_str=reply_str+"<tr><td>Comm Mode</td><td>"
+				if ser.interface=PL_SER_SI_FULLDUPLEX then s2="Full-duplex" else s2="Half-duplex"
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+
+			case 6:
+
+				reply_str=reply_str+"<tr><td>Baudrate</td><td>"
+				
+				if ser.baudrate<=ser.div9600 then
+					i=ser.div9600/ser.baudrate
+					select case i
+					case 1
+						s2="9600bps"
+					case 2
+						s2="19200bps"
+					case 4
+						s2="38400bps"
+					case 6
+						s2="57600bps"
+					case 12
+						s2="115200bps"
+					case 24
+						s2="230400bps"
+					case else
+						s2="460800bps"
+					end select
+				else
+					i=ser.baudrate/ser.div9600
+					select case i
+					case 2
+						s2="4800bps"
+					case 4
+						s2="2400bps"
+					case 8
+						s2="1200bps"
+					case 64
+						s2="150bps"
+					case 32
+						s2="300bps"
+					case 16
+						s2="600bps"
+					case else
+						s2="28800bps"
+					end select
+				end if
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+
+				reply_str=reply_str+"<tr><td>Flow Control</td><td>"
+				if ser.flowcontrol=DISABLED then
+					s2="None"
+				else if ser.flowcontrol=PL_SER_FC_RTSCTS then
+					s2="RTS/CTS"
+				else
+					s2="XON/XOFF"
+				end if
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+
+				reply_str=reply_str+"<tr><td>Parity</td><td>"
+				select case ser.parity 
+				case PL_SER_PR_NONE:
+					s2="None"
+				case PL_SER_PR_EVEN:
+					s2="Even"
+				case PL_SER_PR_ODD:
+					s2="Odd"
+				case PL_SER_PR_MARK:
+					s2="Mark"
+				case PL_SER_PR_SPACE:
+					s2="Space"
+				end select
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+
+			case 7:
+
+				reply_str=reply_str+"<tr><td>Data Bits</td><td>"
+				if ser.bits=PL_SER_BB_7 then s2="7 bits/word" else s2="8 bits/word"
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+
+				reply_str=reply_str+"<tr><td>CTS</td><td>"
+				if ser.ctsmap=PL_INT_NULL then
+					s2="(unmapped)"
+				else
+					if io.lineget(cts_mapping(index))=HIGH then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
+				end if
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+			
+				reply_str=reply_str+"<tr><td>DSR</td><td>"
+				if dsr_mapping(index)=PL_IO_NULL then
+					s2="(unmapped)"
+				else
+					if io.lineget(dsr_mapping(index))=HIGH then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
+				end if
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+
+			case 8:
+
+				reply_str=reply_str+"<tr><td>RTS</td><td>"
+				if ser.rtsmap=PL_IO_NULL then
+					s2="(unmapped)"
+				else
+					if io.lineget(ser.rtsmap)=HIGH then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
+				end if
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+
+				reply_str=reply_str+"<tr><td>DTR</td><td>"
+				if dtr_mapping(index)=PL_IO_NULL then
+					s2="(unmapped)"
+				else
+					if io.lineget(dtr_mapping(index))=HIGH then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
+				end if
+				reply_str=reply_str+s2
+				reply_str=reply_str+"</td></tr>"
+
+				reply_str=reply_str+"</table></body>"
+		
+			case else:
+				goto reply_err
+			
+			end select
+		
+		case else:
+			goto reply_err
+		end select
+		sock.num=cmd_sock
+		goto reply_ok_have_data
+
+
+	case "P" 'parameter command ---------------------------------
+
+		'net commands allowed?
+		x=compare_logins(cmd_mode,cmd_data,sock.num)
+		if x<>LC_WILL_ACCEPT and x<>LC_WILL_ACCEPT_REPEATED_LOGIN and x<>LC_WILL_ACCEPT_LOWER_IN_PROGRESS then goto reply_denied
+		if param_rc(index)=NO then goto reply_denied
+		
+		'we need to memorize where this command came from
+		most_resent_notif_dest_ip(index)=sock.remoteip
+		most_resent_notif_dest_port(index)=sock.remoteport
+		
+		'process password if necessary
+		if error_mode=NO then
+			if stg_sg("OP",index,reply_str,EN_STG_GET)<>EN_STG_STATUS_OK then goto reply_failed
+			if reply_str="1" then
+				if stg_sg("PW",0,reply_str,EN_STG_GET)<>EN_STG_STATUS_OK then goto reply_failed
+				if reply_str<>"" then
+					x=instr(1,s,"/",1)
+					if x=0 then goto reply_denied
+					if mid(s,x+1,255)<>reply_str then goto reply_denied
+				end if
+			end if
+		end if
+		
+		'decode
+		ser.num=index
+		select case mid(s,2,2)
+		case "BB": 'bits/byte
+			select case val(mid(s,4,1))
+			case BB_7:
+				ser.bits=PL_SER_BB_7
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			case BB_8:
+				ser.bits=PL_SER_BB_8
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			case else:
+				goto reply_err
+			end select
+		
+		case "BR":
+			x=val(right(s,len(s)-3))
+			
+			if baudrate_set(x)=NG then
+				goto reply_err
+			else
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			end if
+
+		case "PR":
+			select case val(mid(s,4,1))
+			case PR_NONE:
+				ser.parity=PL_SER_PR_NONE
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			case PR_EVEN:
+				ser.parity=PL_SER_PR_EVEN
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			case PR_ODD:
+				ser.parity=PL_SER_PR_ODD
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			case PR_MARK:
+				ser.parity=PL_SER_PR_MARK
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			case PR_SPACE:
+				ser.parity=PL_SER_PR_SPACE
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			case else:
+				goto reply_err
+			end select
+
+		case "FC":
+			select case val(mid(s,4,1))
+			case FC_DIS:
+				ser.flowcontrol=DISABLED
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			case FC_RTSCTS:
+				ser.flowcontrol=PL_SER_FC_RTSCTS
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			case FC_XONXOFF:
+				ser.flowcontrol=PL_SER_FC_XONOFF
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+				goto reply_ok
+			case else:
+				goto reply_err
+			end select
+				
+		case "NB":
+			param_nb(index)=val(right(s,len(s)-3))
+			#if SUPPORTS_DISPLAY
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_CH1+ser.num,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_CH_OTF)
+				#endif
+			#endif
+			goto reply_ok
+
+		case else:
+			select case mid(s,2,1)
+			case "S":
+				select case val(mid(s,3,1))
+				case 2: 'DSR
+					io.num=dsr_mapping(index)
+				case 3: 'DTR
+					if param_dt(index)=YES then
+						goto reply_ok
+					end if
+					io.num=dtr_mapping(index)
+				case 4: 'CTS
+					io.num=cts_mapping(index)
+				case 5: 'RTS
+					if ser.flowcontrol=ENABLED or ser.interface=PL_SER_SI_HALFDUPLEX then
+						goto reply_ok
+					end if
+					io.num=ser.rtsmap
+				case else:
+					goto reply_err
+				end select
+				io.state=val(mid(s,4,1))
+				goto reply_ok
+			
+			case "G":
+				select case val(mid(s,3,1))
+				case 2: 'DSR
+					io.num=dsr_mapping(index)
+				case 3: 'DTR
+					io.num=dtr_mapping(index)
+				case 4: 'CTS
+					io.num=cts_mapping(index)
+				case 5: 'RTS
+					io.num=ser.rtsmap
+				case else:
+					goto reply_err
+				end select
+				reply_str=str(io.state)
+				goto reply_ok_have_data
+			
+			case else:
+				goto reply_err
+			end select
+		end select
+		goto reply_err
+
+	
+	case "Q" 'reset firmware upload process ---------------------
+		fware_block_ctr=0
+		goto reply_ok
+
+
+	case "D" 'upload one data block of firmware -----------------
+		#if SUPPORTS_APP_UPGR_BY_DSMAN
+			if len(s)<>131 then goto reply_err
+			curr_block_num=256*asc(mid(s,2,1))+asc(mid(s,3,1))
+			if curr_block_num>fware_block_ctr then goto reply_out_of_seq 'out of sequence		 
+			if curr_block_num<fware_block_ctr then goto reply_ok 'repeated block
+			if curr_block_num>=fd.availableflashspace*2 then goto reply_out_of_mem 'no space to store new file
+			
+			'we fit two 128-byte packets into each sector
+			fd.buffernum=0
+			if (curr_block_num and 1)=0 then
+				'fill the first half of the buffer
+				fd.setbuffer(mid(s,4,128),0)
+			else
+				'fill the second half of the buffer and program the sector
+				fd.setbuffer(mid(s,4,128),128)
+				fd.setsector(curr_block_num/2)
+			end if
+			'next block number
+			fware_block_ctr=fware_block_ctr+1
+			x=fware_block_ctr/256
+			reply_str=chr(x)+chr(fware_block_ctr-x*256) 
+			goto reply_ok_have_data
+		#else
+			goto reply_failed
+		#endif
+
+
+	case "N" 'firmware programming request ----------------------
+		#if SUPPORTS_APP_UPGR_BY_DSMAN
+			if cmd_src_valid=NO then goto reply_denied
+			pat.channel=0
+			pat.play(PAT_GREEN_LOOP,PL_PAT_CANINT)
+			'the following delay will make sure that the pattern will be displayed
+			'we do this because fd.copyfirmware will disable interrupts
+			i=sys.timercount
+			while i=sys.timercount
+			wend
+			'we might have one unsaved sector!
+			if (curr_block_num and 1)=0 then
+				fd.setsector(curr_block_num/2)
+			end if
+			
+			num_sectors=fware_block_ctr/2
+			if (fware_block_ctr and 1)<>0 then
+				num_sectors=num_sectors+1
+			end if
+			'copy between areas of flash
+			pat.play(PAT_BOTH_LOOP,PL_PAT_CANINT)
+			i=sys.timercount 'this is a small delay to make pattern start playing
+			while i=sys.timercount
+			wend
+			fd.copyfirmware(num_sectors)
+		#else
+			goto reply_failed
+		#endif
+
+	case "R" 'reset overflow command ----------------------------
+		overrun_se(index)=NO
+		overrun_es(index)=NO
+		goto reply_ok
+
+	'<-------- steve begin (for production testing)
+	case "M" 'Manufacture command
+		if mid(s,2,1)="L" then
+			if button.pressed=YES then
+				pat.channel=0
+				manufacture_flag=0 'disable pat event 
+				manufacture_login=YES
+				goto reply_ok
+			else
+				manufacture_login=NO
+				'goto reply_denied
+			end if
+		end if
+
+		if manufacture_login=NO then goto reply_denied
+
+		select case mid(s,2,1)
+
+		#if PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+		case "W":
+		'THIS COMMAND SHOULD INCLUDE AP NAME
+			#if WLN_AVAILABLE
+				ser.num=0
+				ser.enabled=NO
+				ser.rxbuffrq(1)
+				ser.txbuffrq(1)
+				sys.buffalloc
+				ser.enabled=YES
+
+				param_we=WE_ENABLED_PERMANENT
+				param_wa=right(s,len(s)-2)
+				param_ws=WLN_SECURITY_MODE_DISABLED
+				wln_password=""
+				wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC)
+				if wln_recent_status<>WLN_STATUS_OK then
+					goto reply_failed
+				end if
+				goto reply_ok
+			#endif
+
+		case "D":
+			if display_installed=NO then
+				reply_str="0"
+				goto reply_failed
+			end if
+			'<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<STEVE 2013/05/28
+			lcd.forecolor=0
+			lcd.fill(0,0,lcd.width,lcd.height)
+			lcd.forecolor=1
+			select case mid(s,3,1)
+			case "0": 'Frame -0
+				for x=0 to lcd.width-1
+					if x mod 2=1 then
+						lcd.line(x,0,x,lcd.height-1)
+					end if
+				next x
+
+			case "1": 'Frame -1
+				for x=0 to lcd.width-1
+					if x mod 2=0 then
+						lcd.line(x,0,x,lcd.height-1)
+					end if
+				next x
+
+			case "2": 'Frame -2
+				dim y as byte
+				for y=0 to lcd.height-1
+					for x=0 to lcd.width-1
+						lcd.setpixel(1,x,y)
+					next x
+				next y
+
+			case else:
+				
+			end select
+			goto reply_ok
+
+		case "F":
+			if wln_check_association()=PL_WLN_NOT_ASSOCIATED then goto reply_failed
+			goto reply_ok
+		#endif
+
+		case "P":
+			'SET RS232, 422, or 485 mode
+			select case mid(s,3,1)
+				case "0": 'RS232
+					ser.num=0
+					ser.enabled=NO
+					ser.interface=PL_SER_SI_FULLDUPLEX
+
+					#if PLATFORM_ID=DS1102W
+						io.lineset(SER0_HDFD,HIGH)
+						io.lineset(SER0_RSMD,LOW)
+					#endif
+
+					' set CTS as input
+					#if PLATFORM_ID=DS1100
+						ser.ctsmap=PL_IO_NUM_0_CTS_INT0
+						io.num=PL_IO_NUM_0_CTS_INT0
+					#elif PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+						ser.ctsmap=PL_IO_NUM_2_RX1_INT2
+						io.num=PL_IO_NUM_2_RX1_INT2
+					#endif
+					io.enabled=NO
+
+					' set RTS as output
+					#if PLATFORM_ID=DS1100
+						ser.rtsmap=PL_IO_NUM_2_RTS
+						io.num=PL_IO_NUM_2_RTS
+					#elif PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+						ser.rtsmap=PL_IO_NUM_3_TX1_INT3
+						io.num=PL_IO_NUM_3_TX1_INT3
+					#endif
+					io.enabled=YES
+					io.state=LOW
+
+					' set DSR as input
+					#if PLATFORM_ID=DS1100
+						io.num=PL_IO_NUM_1_DSR_INT1
+					#elif PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+						io.num=PL_IO_NUM_4_RX2_INT4
+					#endif
+					io.enabled=NO
+
+					' set DTR as output
+					#if PLATFORM_ID=DS1100
+						io.num=PL_IO_NUM_3_DTR
+					#elif PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+						io.num=PL_IO_NUM_5_TX2_INT5
+					#endif
+					io.enabled=YES
+					io.state=LOW
+
+					ser.enabled=YES
+
+			#if PLATFORM_ID=DS1102W
+				case "1": 'RS485
+					ser.num=0
+					ser.enabled=NO
+					ser.interface=PL_SER_SI_HALFDUPLEX
+
+					io.lineset(SER0_HDFD,LOW)
+					io.lineset(SER0_RSMD,HIGH)
+
+					' set CTS line as input
+					ser.ctsmap=PL_INT_NUM_2
+					io.num=PL_IO_NUM_2_RX1_INT2
+					io.enabled=NO
+
+					' set RTS line as output
+					ser.rtsmap=PL_IO_NUM_3_TX1_INT3
+					io.num=PL_IO_NUM_3_TX1_INT3
+					io.enabled=YES
+
+					' set DSR line as input
+					io.num=PL_IO_NUM_4_RX2_INT4
+					io.enabled=NO
+
+					' set DTR line as output
+					io.num=PL_IO_NUM_5_TX2_INT5
+					io.enabled=YES
+					io.state=LOW
+					ser.enabled=YES
+
+				case "2": 'RS422
+					ser.num=0
+					ser.enabled=NO
+					ser.interface=PL_SER_SI_FULLDUPLEX
+
+					io.lineset(SER0_HDFD,HIGH)
+					io.lineset(SER0_RSMD,HIGH)
+
+					' set CTS line as input
+					ser.ctsmap=PL_IO_NUM_2_RX1_INT2
+					io.num=PL_IO_NUM_2_RX1_INT2
+					io.enabled=NO
+
+					' set RTS line as output
+					ser.rtsmap=PL_IO_NUM_3_TX1_INT3
+					io.num=PL_IO_NUM_3_TX1_INT3
+					io.enabled=YES
+
+					' set DSR line as input
+					io.num=PL_IO_NUM_4_RX2_INT4
+					io.enabled=NO
+
+					' set DTR line as output
+					io.num=PL_IO_NUM_5_TX2_INT5
+					io.enabled=YES
+					io.state=LOW
+
+					ser.enabled=YES
+			#endif
+
+			case "S":
+				select case val(mid(s,4,1))
+				case 3: 'DTR
+					io.enabled=NO
+					#if PLATFORM_ID=DS1100
+						io.num=PL_IO_NUM_3_DTR
+					#elif PLATFORM_ID= DS1101W or  PLATFORM_ID=DS1102W
+						io.num=PL_IO_NUM_5_TX2_INT5
+					#endif
+					io.enabled=YES
+
+				case 5: 'RTS
+					ser.enabled=NO
+					ser.interface=PL_SER_SI_FULLDUPLEX
+
+					#if PLATFORM_ID=DS1100
+						io.num=PL_IO_NUM_2_RTS
+					#elif PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+						io.num=PL_IO_NUM_3_TX1_INT3
+					#endif
+
+					ser.rtsmap=PL_IO_NULL
+					io.enabled=YES
+
+				case else:
+					goto reply_err
+
+				end select
+
+				io.state=val(mid(s,5,1))
+				goto reply_ok
+			
+			case "G":
+				select case val(mid(s,4,1))
+				case 2: 'DSR
+					io.num=dsr_mapping(index)
+
+				case 4: 'CTS
+					io.num=cts_mapping(index)
+
+				case else:
+					goto reply_err
+
+				end select
+				reply_str=str(io.state)
+				goto reply_ok_have_data
+
+			end select
+			goto reply_ok
+
+		case "G":
+			if mid(s,3,1)="1" then
+				pat.channel=0
+				pat.play(PAT_GREEN_LOOP,PL_PAT_CANINT)
+				manufacture_flag=1
+			else
+				pat.channel=0
+				pat.play("-",PL_PAT_CANINT)
+				manufacture_flag=2
+			end if
+			goto reply_ok
+
+		case "R":
+			if mid(s,3,1)="1" then
+				pat.channel=0
+				pat.play(PAT_RED_LOOP,PL_PAT_CANINT)
+				manufacture_flag=3				
+			else
+				pat.channel=0
+				pat.play("-",PL_PAT_CANINT)
+				manufacture_flag=4
+			end if
+			goto reply_ok
+		
+		case "E":
+			manufacture_flag=0
+			goto reply_ok
+
+		#if PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+		case "B":
+			io.num=PL_IO_NUM_19_SB1
+			io.enabled=YES
+			io.num=PL_IO_NUM_20_SB2
+			io.enabled=YES
+			io.num=PL_IO_NUM_21_SB3
+			io.enabled=YES
+			io.num=PL_IO_NUM_22_SB4
+			io.enabled=YES
+			io.num=PL_IO_NUM_23_SB5
+			io.enabled=YES
+			if mid(s,3,1)="0" then
+				io.lineset(PL_IO_NUM_19_SB1,high)
+				io.lineset(PL_IO_NUM_20_SB2,high)
+				io.lineset(PL_IO_NUM_21_SB3,high)
+				io.lineset(PL_IO_NUM_22_SB4,high)
+				io.lineset(PL_IO_NUM_23_SB5,high)
+			end if
+
+			if mid(s,3,1)="1" then
+				io.lineset(PL_IO_NUM_19_SB1,low)
+				io.lineset(PL_IO_NUM_20_SB2,high)
+				io.lineset(PL_IO_NUM_21_SB3,high)
+				io.lineset(PL_IO_NUM_22_SB4,high)
+				io.lineset(PL_IO_NUM_23_SB5,high)
+			end if
+
+			if mid(s,3,1)="2" then
+				io.lineset(PL_IO_NUM_19_SB1,high)
+				io.lineset(PL_IO_NUM_20_SB2,low)
+				io.lineset(PL_IO_NUM_21_SB3,high)
+				io.lineset(PL_IO_NUM_22_SB4,high)
+				io.lineset(PL_IO_NUM_23_SB5,high)
+			end if
+
+			if mid(s,3,1)="3" then
+				io.lineset(PL_IO_NUM_19_SB1,high)
+				io.lineset(PL_IO_NUM_20_SB2,high)
+				io.lineset(PL_IO_NUM_21_SB3,low)
+				io.lineset(PL_IO_NUM_22_SB4,high)
+				io.lineset(PL_IO_NUM_23_SB5,high)
+			end if
+
+			if mid(s,3,1)="4" then
+				io.lineset(PL_IO_NUM_19_SB1,high)
+				io.lineset(PL_IO_NUM_20_SB2,high)
+				io.lineset(PL_IO_NUM_21_SB3,high)
+				io.lineset(PL_IO_NUM_22_SB4,low)
+				io.lineset(PL_IO_NUM_23_SB5,high)
+			end if
+
+			if mid(s,3,1)="5" then
+				io.lineset(PL_IO_NUM_19_SB1,high)
+				io.lineset(PL_IO_NUM_20_SB2,high)
+				io.lineset(PL_IO_NUM_21_SB3,high)
+				io.lineset(PL_IO_NUM_22_SB4,high)
+				io.lineset(PL_IO_NUM_23_SB5,low)
+			end if
+
+			goto reply_ok
+		#endif
+
+		#if PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+		case "U":
+			select case mid(s,3,1)
+			case "0":
+				beep.play("-", PL_BEEP_CANINT)
+
+			case "1":
+				beep.play("B~", PL_BEEP_CANINT)
+
+			case else:
+				goto reply_err
+
+			end select
+
+			goto reply_ok
+		#endif
+
+		case "C":
+			reply_str=net.mac
+			goto reply_ok_have_data
+
+		#if PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+		case "o":
+			if test_io_pair(PL_IO_NUM_24_OLED_D0,PL_IO_NUM_25_OLED_D1)=NG then goto reply_failed
+			if test_io_pair(PL_IO_NUM_26_OLED_D2,PL_IO_NUM_27_OLED_D3)=NG then goto reply_failed
+			if test_io_pair(PL_IO_NUM_28_OLED_D4,PL_IO_NUM_29_OLED_D5)=NG then goto reply_failed
+			if test_io_pair(PL_IO_NUM_30_OLED_D6,PL_IO_NUM_31_OLED_D7)=NG then goto reply_failed
+			if test_io_pair(PL_IO_NUM_35_OLED_DC,PL_IO_NUM_36_OLED_RST)=NG then goto reply_failed
+			if test_io_pair(PL_IO_NUM_33_OLED_RD,PL_IO_NUM_34_OLED_WR)=NG then goto reply_failed
+			if test_io_pair(PL_IO_NUM_34_OLED_WR,PL_IO_NUM_32_OLED_CS)=NG then goto reply_failed
+			goto reply_ok
+
+		#endif
+		
+		case else:
+		
+		end select '---------> steve end (for production testing)
+
+	case else: 'invalid command ---------------------------------
+
+		if cmd_bcast=YES and net_cmd_bcast_sel=NO then goto reply_null 'important!
+		goto reply_err
+
+	end select
+
+	'---------- after processing command we are landing here to generate different reply codes
+
+reply_out_of_mem:
+	reply_str="O"
+	goto add_seq_num
+
+reply_out_of_seq:
+	reply_str="S"
+	goto add_seq_num
+
+reply_rejected:
+	reply_str="R"
+	goto add_seq_num
+
+reply_err:
+	reply_str="C"
+	goto add_seq_num
+
+reply_denied:
+	reply_str="D"
+	goto add_seq_num
+
+reply_failed:
+	reply_str="F"
+	goto add_seq_num
+
+reply_ok:
+	reply_str="A"
+	goto add_seq_num
+
+reply_ok_have_data:
+	reply_str="A"+reply_str
+	goto add_seq_num
+
+add_seq_num:
+ 	
+	reply_str=reply_str+ser_num
+
+	sock.num=cmd_sock 'restore socket (we may have changed it)
+
+	'and finally send!
+	if cmd_mode=CMD_MODE_INBAND then
+		reply_str=chr(sock.escchar)+chr(STX)+reply_str+chr(CR)
+		sock.setsendinband(reply_str)
+	end if
+	
+	if cmd_mode=CMD_MODE_TELNET then
+		sock.setdata(chr(STX)+reply_str+chr(CR))
+		sock.send
+	end if
+	
+	if cmd_mode<>CMD_MODE_INBAND and cmd_mode<>CMD_MODE_TELNET then
+		sock.setdata(reply_str)
+		sock.send
+	end if
+	
+	'do we need to change the IP?
+	if ip_change_needed=YES then
+		sock.inconenabledmaster=NO
+		close_interface_sockets(sock.currentinterface)
+		if sock.currentinterface=PL_SOCK_INTERFACE_NET then
+			net.ip=validate_ip(stg_get("IP",0))
+			#if SUPPORTS_DISPLAY
+				lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+			#endif
+		else
+			#if WLN_AVAILABLE
+				wln.ip=validate_ip(stg_get("WI",0))
+				#if SUPPORTS_DISPLAY
+					lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+				#endif
+			#endif
+		end if
+		sock.inconenabledmaster=YES
+	end if
+
+reply_null:
+end sub
+
+'-------------------------------------------------------------
+public sub ser_cmd_proc(byref cmd_str as string,cmd_source_ser_port as word,error_mode as no_yes)
+	dim temp_str as string(MAX_SER_CMD_LEN)
+	dim index as byte
+	dim reply_str as string(MAX_SER_RPL_LEN)
+	dim x as byte
+	dim setting_name as string(STG_MAX_SETTING_NAME_LEN)
+	dim explicit_index as no_yes
+	dim logout as no_yes
+	dim s as string(20)
+
+	dim cs,f,pos as byte 'steve
+	dim mac_num as word'steve
+	dim i as word
+
+	logout=NO
+
+	'default index depends on the communication channel
+	index=ser.num 'this is default in case the index is not specified explicitly 
+
+	'see of command has escape sequence included (except for "D" command)
+	explicit_index=NO
+	x=instr(1,cmd_str,CMD_ESC_CHAR,1)
+	if x>0 then
+		'yes, the sequence is included -- extract it
+		index=val(mid(cmd_str,x+1,1))
+		temp_str=right(cmd_str,len(cmd_str)-x-1)
+		cmd_str=left(cmd_str,x-1)+temp_str
+		if index>0 then index=index-1
+		if index>=NUM_SERIAL_PORTS then goto reply_err
+		explicit_index=YES
+	end if
+
+	sock.num=sock_comm(index)
+
+
+	select case left(cmd_str,1)
+
+	case "X": 'echo command (device info) -----------------------
+		reply_str=get_x_flags_serial(index)
+		goto reply_ok_have_data
+
+
+	case "G": 'get setting --------------------------------------
+		setting_name=mid(cmd_str,2,2)
+		if stg_get_num_members(setting_name,x)<>EN_STG_STATUS_OK then goto reply_err
+		if index>=x then
+			'index is out of range
+			if explicit_index=YES then
+				goto reply_err 'index was specified, so this is an error
+			else
+				'index was "figured out automatically", but this setting has a single value
+				'for the entire device. We simply reset the index
+				index=0 
+			end if
+		end if
+
+		select case stg_sg(setting_name,index,reply_str,EN_STG_GET)
+		case EN_STG_STATUS_OK:
+			goto reply_ok_have_data
+		case EN_STG_STATUS_UNKNOWN:
+			goto reply_err
+		case EN_STG_STATUS_INVALID_INDEX:
+			goto reply_err
+		case else:
+			goto reply_failed
+		end select
+
+
+	case "S": 'set setting --------------------------------------
+		setting_name=mid(cmd_str,2,2)
+		if stg_get_num_members(setting_name,x)<>EN_STG_STATUS_OK then goto reply_err
+		if index>=x then
+			'index is out of range
+			if explicit_index=YES then
+				goto reply_err 'index was specified, so this is an error
+			else
+				'index was "figured out automatically", but this setting has a single value
+				'for the entire device. We simply reset the index
+				index=0 
+			end if
+		end if
+
+		select case stg_sg(setting_name,index,right(cmd_str,len(cmd_str)-3),EN_STG_SET)
+		case EN_STG_STATUS_OK:
+			goto reply_ok_have_data
+		case EN_STG_STATUS_INVALID:
+			goto reply_err
+		case EN_STG_STATUS_INVALID_INDEX:
+			goto reply_err
+		case EN_STG_STATUS_UNKNOWN:
+			goto reply_err
+		case else:
+			goto reply_failed
+		end select
+
+
+	case "U": 'extented device status info ----------------------
+		reply_str=sock.remoteip+"/"+str(sock.remoteport)
+		goto reply_ok_have_data
+
+
+	case "O": 'logout -------------------------------------------
+		logout=YES 'we must send the reply first, and only then exit the programming mode
+		goto reply_ok
+
+
+	case "I": 'initialize all settings --------------------------
+		if stg_restore_multiple(EN_STG_INIT_MODE_OVERRIDE)<>EN_STG_STATUS_OK then goto reply_failed
+			goto reply_ok
+
+	case "i": 'initialize settings for selected channel --------------------------
+		if init_settings_of_one_channel(index)=NG then goto reply_failed
+		goto reply_ok
+
+
+	case "E": 'reboot -------------------------------------------
+		sys.reboot
+
+
+	case "V": 'version string -----------------------------------
+		reply_str=FIRMWARE_VERSION
+		goto reply_ok_have_data
+
+
+	case "H": 'hardware version (legacy command) ----------------
+		reply_str="1A"
+		goto reply_ok_have_data
+
+
+	case "C": 'number of SDF lines to load (new command) --------
+		if mid(cmd_str,2,1)<>"S" then goto reply_err 'only SDF data can be fetched through the serial port
+		reply_str=str(num_sdf)
+		goto reply_ok_have_data		
+	
+
+	case "F": 'get specified SDF line ---------------------------
+		if mid(cmd_str,2,1)<>"S" then goto reply_err 'only SDF data can be fetched through the serial port
+		x=val(right(cmd_str,len(cmd_str)-2))
+		if x>=num_sdf then goto reply_err
+		romfile.open(DSMAN_DESCRIPTOR_FILE)
+		romfile.pointer=sdf_addr(x)
+		reply_str=romfile.getdata(sdf_len(x))
+		
+		'we need to cut out CR/LF at the end if they are present
+		x=instr(1,reply_str,chr(13),1)
+		if x>0 then reply_str=left(reply_str,x-1)
+		goto reply_ok_have_data
+
+
+	case "P" 'parameter command ---------------------------------
+		select case mid(cmd_str,2,2)
+		case "DI": 'set destination IP
+			if sock.statesimple<>PL_SSTS_CLOSED then goto reply_rejected 'only for compatibility with EM100
+			cmd_str=right(cmd_str,len(cmd_str)-3)
+			if len(ddval(cmd_str))<>4 then goto reply_err
+			sock.targetip=cmd_str
+			overriding_destination_set(index)=YES
+			goto reply_ok
+		
+		case "DP": 'set destination port
+			if sock.statesimple<>PL_SSTS_CLOSED then goto reply_rejected 'only for compatibility with EM100
+			sock.targetport=val(right(cmd_str,len(cmd_str)-3))
+			overriding_destination_set(index)=YES
+			goto reply_ok
+		
+		case "RM":
+			x=val(right(cmd_str,len(cmd_str)-3))
+			if x>RM_CLIENT then goto reply_err
+			param_rm(index)=x
+			set_sock_connmode(index)
+			goto reply_ok
+		
+		case "SF":
+			x=val(right(cmd_str,len(cmd_str)-3))
+			if x>YES then goto reply_err
+			param_sf(index)=x
+			set_sock_connmode(index)
+			goto reply_ok
+
+		case "TP":
+			if sock.statesimple<>PL_SSTS_CLOSED then goto reply_rejected
+			x=val(right(cmd_str,len(cmd_str)-3))
+			if x>PL_SOCK_PROTOCOL_TCP then goto reply_err
+			sock.protocol=x
+			goto reply_ok
+
+		case "CE":
+			if param_rm(index)=RM_SERVER or sock.statesimple<>PL_SSTS_CLOSED then goto reply_rejected
+			cmd_str=right(cmd_str,len(cmd_str)-3)
+			x=instr(1,cmd_str,"/",1)
+			if x<>0 then
+				'destination IP/port are included
+				if len(ddval(cmd_str))<>4 then goto reply_err 'invalid IP format
+				sock.targetip=left(cmd_str,x-1)
+				sock.targetport=right(cmd_str,len(cmd_str)-x)
+				overriding_destination_set(index)=YES
+			else
+				'destination IP/port are NOT included
+					if overriding_destination_set(index)=NO then
+						if stg_sg("DI",index,s,EN_STG_GET)<>EN_STG_STATUS_OK then goto reply_failed
+						sock.targetip=s
+						if stg_sg("DP",index,s,EN_STG_GET)<>EN_STG_STATUS_OK then goto reply_failed
+						sock.targetport=val(s)
+					end if
+			end if
+			
+			sock.connect
+			goto reply_ok
+
+		case "CC":
+			if sock.statesimple<>PL_SSTS_CLOSED then sock.close
+			goto reply_ok
+
+		case "CA":
+			if sock.statesimple<>PL_SSTS_CLOSED then sock.reset
+			goto reply_ok
+
+		case else
+			goto reply_err
+		
+		end select
+
+	'<--------steve begin
+	case "M": 'Manufacture command
+		select case mid(cmd_str,2,1)
+		case "I":
+			sock.inconenabledmaster=NO
+			reply_str=""			
+			for f=0 to sock.numofsock-1
+				sock.num=f
+				sock.discard
+				while sock.statesimple<>PL_SSTS_CLOSED
+				wend
+			next f
+			net.ip=right(cmd_str,len(cmd_str)-3)
+			sock.inconenabledmaster=YES
+			goto reply_ok
+
+		case "V":
+			reply_str=sys.version
+			goto reply_ok_have_data
+
+		#if POWER_ON_PIN9
+		case "Z" '----- PIN9 VOUT ON/OFF
+			io.num=PL_IO_NUM_8_PWROUT
+			io.enabled=YES
+			select case mid(cmd_str,3,1)
+			case "0":
+				io.state=HIGH
+				goto reply_ok
+
+			case "1":
+				io.state=LOW
+				goto reply_ok
+
+			case else:
+				goto reply_err
+			end select
+		#endif
+
+		case "M":
+			select case mid(cmd_str,3,1)
+			case "S"
+				s=chr(6)+ddval(mid(cmd_str,4,255))
+				if len(s)<>7 then goto reply_err
+				s=s+chr(255-strsum(s))	
+				i=stor.base
+				stor.base=0
+				if stor.setdata(s,1)<>len(s) then
+					stor.base=i
+					goto reply_failed
+				end if
+				stor.base=i
+				goto reply_ok
+
+			case "G"
+				i=stor.base
+				stor.base=0
+				s=stor.getdata(1,8)
+				stor.base=i
+
+				if asc(left(s,1))<>6 then goto reply_err
+
+				dim cs_0,cs_1 as byte
+				cs_0= asc(mid(s,8,1))
+				cs_1=255-strsum(left(s,7))
+				if cs_0<>cs_1 then goto reply_err
+				reply_str=ddstr(mid(s,2,6))
+				goto reply_ok_have_data
+
+			case else:
+			end select
+
+		#if PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+		case "F":
+			if wln_check_association()=PL_WLN_NOT_ASSOCIATED then goto reply_ok
+			goto reply_failed
+		#endif
+
+		#if PLATFORM_ID=DS1102W
+		case "W":
+			reply_str=mid(cmd_str,3,len(cmd_str)-2)
+			goto reply_ok_have_data
+		#endif
+
+		end select '--------->steve end
+
+	case else
+		goto reply_err
+	
+	end select
+
+reply_rejected:
+	reply_str="R"
+	goto send
+
+reply_err:
+	reply_str="C"
+	goto send
+
+reply_failed:
+	reply_str="F"
+	goto send
+
+reply_ok:
+	reply_str="A"
+	goto send
+
+reply_ok_have_data:
+	reply_str="A"+reply_str
+	goto send
+
+send:
+	reply_str=chr(2)+reply_str+chr(13) 'add encapsulation
+	ser.setdata(reply_str)
+	ser.send
+	
+	'do we need to logout?
+	if logout=YES then
+		'wait until the reply is sent out in full -- when we exit ser prog the serial port may be closed
+		while ser.txlen>0
+		wend
+		'additional delay -- there still may be some unsent data in the UART's FIFO
+		for x=0 to 250
+		next x
+		exit_ser_prog_mode(index)
+	end if
+
+
+reply_null:
+end sub
+
+'-------------------------------------------------------------
+function dsman_get_descriptor_field(line_end_pos as word, byref field_start_pos as word) as string
+'line_end_pos is an INPUT parameter, field_start_pos RETURNS the field position 
+
+	dim i as word
+	
+	do
+		if romfile.pointer>=line_end_pos then
+			'the field is missing
+			dsman_get_descriptor_field=""
+			field_start_pos=0
+			exit function
+		end if
+		
+		i=romfile.find(romfile.pointer,chr(DSMAN_FIELD_SEPARATOR),1)
+		field_start_pos=romfile.pointer
+		if i=0 or i>line_end_pos then
+			'no next field separator found on this line, so we assume the field goes to the end of the line
+			i=line_end_pos
+			dsman_get_descriptor_field=romfile.getdata(i-romfile.pointer)
+			romfile.pointer=line_end_pos+1
+		else
+			dsman_get_descriptor_field=romfile.getdata(i-romfile.pointer)
+			romfile.pointer=i+1
+		end if
+	loop while dsman_get_descriptor_field="" 		
+end function
+
+'------------------------------------------------------------------------------
+#if DSMAN_DEBUG_PRINT
+sub dsman_debugprint(byref print_data as string)
+	sys.debugprint(DSMAN_STAMP+print_data+DSMAN_CR_LF)
+end sub
+#endif
+
+
+

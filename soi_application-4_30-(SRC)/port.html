@@ -1,0 +1,162 @@
+<?
+	include "global.tbh"
+	declare it_was_save as no_yes
+	dim flag as ok_ng
+
+	'<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	'io.num=PL_IO_NUM_48	'TDL execution, white
+	'io.enabled=YES
+	'io.num=PL_IO_NUM_49	'TDL moving, white
+	'io.enabled=YES
+	'io.num=PL_IO_NUM_50	'TDL loading, yellow
+	'io.enabled=YES
+	'io.num=PL_IO_NUM_51	'P-code execution, blue
+	'io.enabled=YES
+	'io.num=PL_IO_NUM_52	'currproc, green
+	'io.enabled=YES
+	'io.num=PL_IO_NUM_53	'strobe, orange
+	'io.enabled=YES
+	'io.state=LOW
+	'<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+	html_channel_index = val(get_http_argument(sock.httprqstring,"ch="))
+?>
+
+<html>
+<HEAD>
+<META HTTP-EQUIV="Expires" CONTENT="Tue, 01 Jan 1980 1:00:00 GMT">
+<META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+
+<script type="text/javascript">
+function FormSubmit()
+{
+document.getElementById("myForm").submit()
+}
+function IndexPage()
+  {
+  window.top.location.replace("Index.html")
+  }
+function PortSelected(channel)
+{
+   if(channel!=<?sock_setsend(str(html_channel_index))?>)
+   {
+	  switch(channel)
+	  {
+	  case '0':
+		window.self.location.replace("port.html?ch=0&session=<?sock_setsend(login_data)?>");
+		break;
+	  case '1':
+		window.self.location.replace("port.html?ch=1&session=<?sock_setsend(login_data)?>");
+		break;
+	  case '2':
+		window.self.location.replace("port.html?ch=2&session=<?sock_setsend(login_data)?>");
+		break;
+	  case '3':
+		window.self.location.replace("port.html?ch=3&session=<?sock_setsend(login_data)?>");
+		break;
+	  default:
+		window.self.location.replace("port.html?ch=1&session=<?sock_setsend(login_data)?>");
+	  }
+   }
+}
+
+</script>
+<style type="text/css">
+h1,h2,h3
+{
+color: #663144;
+font-family: arial, 'sans serif'; 
+text-align:center;
+}
+
+p,table,li,address
+{
+font-family: arial, 'sans serif'; 
+border-spacing: 1px
+}
+
+p,li,th,td
+{
+font-size: 100%;
+color: #3A161A
+}
+
+th {background-color:#E8ECED }
+
+body
+{
+background-color: #E0D6B8;
+}
+
+a
+{
+float:left;
+text-decoration:none;
+color:#E0D6B8;
+background-color:#663144;
+padding:0.2em 0.6em;
+}
+a:hover {background-color:#76A0B0;}
+li {display:inline;}
+</style>
+</HEAD>
+
+<body <?flag=html_login_verify(yes)?>>
+<? 
+	if flag=NG then goto finish
+?>
+<div>
+<?html_save_setting?>
+<br>
+	<table width='600' align=center border="0" cellspacing="0" cellpadding="0" >
+		<form id="myForm" action="port.html?" method="get">
+		<? html_print_session?>
+		<tr><td width = 80%> <h3> Serial Settings</h3> </td>
+		</tr>
+		<tr><td>
+			<?html_channel_selected?>
+		</td></tr>
+		<tr><td><br></td></tr>
+		<tr>
+			<td width = 80%>
+			<table width=100% border = "1">
+			<tr>
+			<th	width = 66%><b>Setting name</b></th>
+			<th width = 34%><b>Setting value</b></th>
+			</tr>
+			</table>		
+			</td>
+			<td>
+			</td>
+		</tr>
+
+		<? 
+		html_print_setting(HTML_PORT_DEF,html_print_setting_flags_ports_page) 
+		?>
+		<tr>
+		<td width = 80%>
+			<table width = 100% border="1" cellspacing="0" cellpadding="0">
+				<tr><td><table border="0" cellspacing="1" cellpadding="0">
+					<tr><td><a href = '#' onclick='FormSubmit()'> Save </a></td>
+					 	<td><a href = 'port.html?ch=<?sock_setsend(str(html_channel_index))?>&session=<?sock_setsend(login_data) ?>'> Reload </a></td>
+						<td width = 100% align = right>
+						</td>
+					</tr></table>
+					</td>
+				</tr>
+			</table>
+		</td>
+		</tr>
+		</form>
+	</table>
+</div>
+<?finish:
+
+	'<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	'io.num=PL_IO_NUM_53
+	io.state=HIGH
+	'<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+?>
+</body>
+</html>

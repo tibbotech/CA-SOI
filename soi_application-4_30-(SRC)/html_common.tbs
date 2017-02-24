@@ -1,0 +1,311 @@
+include "global.tbh"
+
+public dim html_reboot_flag as no_yes
+
+declare index_page_socknum as byte 
+
+'=============================================================
+public sub print_routing_data(channel_num as byte, fragment_num as print_routing_data_fragments)
+	
+	dim print_str as string(100)
+	dim i as word
+	dim sock_num_backup as byte
+
+	sock_num_backup=sock.num
+	sock.num=sock_comm(channel_num)
+	ser.num=channel_num
+	print_str=""
+
+	select case fragment_num
+	case PRD_IU:  'Port not in use warning
+		if port_in_use(channel_num)=NO then
+			print_str="<font color='red'><b>This port is currently disabled or unavailable.<br><br></b></font>"
+		end if
+	
+	case PRD_ES:  'Ethernet->Serial (data/capacity)
+		if overrun_es(channel_num)<>NO then print_str=print_str+"<font color='red'>"
+		print_str=print_str+str(ser.txlen)+"/"+str(ser.txbuffsize)
+		if overrun_es(channel_num)<>NO then print_str=print_str+" (overrun)</font>"
+
+	case PRD_SE:  'Serial->Ethernet (data/capacity)
+		if overrun_se(channel_num)<>NO then print_str=print_str+"<font color='red'>"
+		print_str=print_str+str(sock.txlen)+"/"+str(sock.txbuffsize)
+		if overrun_se(channel_num)<>NO then print_str=print_str+" (overrun)</font>"
+
+	case PRD_NI: 'Network Interface
+		select case current_interface
+		case PL_SOCK_INTERFACE_NET:
+			print_str="Ethernet"
+	
+	#if WLN_AVAILABLE	
+		case PL_SOCK_INTERFACE_WLN:
+			print_str="Wi-Fi"
+	#endif	
+		
+		case PL_SOCK_INTERFACE_PPP:
+			print_str="GPRS"
+		end select
+	
+	case PRD_CS:  'Connection State
+		select case sock.statesimple
+		case PL_SSTS_CLOSED, PL_SSTS_PC, PL_SSTS_AC:
+			'no connection at this time
+			select case sock.state
+			case PL_SST_CL_PRESET_POPENING,
+				 PL_SST_CL_PRESET_AOPENING,
+				 PL_SST_CL_PRESET_EST,
+				 PL_SST_CL_PRESET_PCLOSING,
+				 PL_SST_CL_PRESET_ACLOSING,
+				 PL_SST_CL_PRESET_STRANGE:
+				'connection was reset by the other end
+				print_str="Reset (by remote host)"
+			case else:
+				'idle (and not because it was reset by other end)
+				print_str="Idle"
+			end select
+
+		case PL_SSTS_ARP, PL_SSTS_PO, PL_SSTS_AO:
+			'connection is being established
+			print_str="Opening"
+		
+		case PL_SSTS_EST:
+			print_str="Established"
+		end select
+
+	case PRD_LP:  'Local Port
+		print_str=str(sock.localport)
+
+	case PRD_RI:  'Remote IP
+		print_str=sock.remoteip
+
+	case PRD_RP:  'Remote Port
+		print_str=str(sock.remoteport)
+
+	case PRD_PS:  'Port State
+		if ser.enabled=NO then print_str="Closed" else print_str="Opened"
+	
+	case PRD_CM:  'Comm Mode
+		if ser.interface=PL_SER_SI_FULLDUPLEX then print_str="Full-duplex" else print_str="Half-duplex"
+	
+	case PRD_BR:  'Baudrate
+		if ser.baudrate<=ser.div9600 then
+			i=ser.div9600/ser.baudrate
+			select case i
+			case 1
+				print_str="9600bps"
+			case 2
+				print_str="19200bps"
+			case 4
+				print_str="38400bps"
+			case 6
+				print_str="57600bps"
+			case 12
+				print_str="115200bps"
+			case 24
+				print_str="230400bps"
+			case else
+				print_str="460800bps"
+			end select
+		else
+			i=ser.baudrate/ser.div9600
+			select case i
+			case 2
+				print_str="4800bps"
+			case 4
+				print_str="2400bps"
+			case 8
+				print_str="1200bps"
+			case 64
+				print_str="150bps"
+			case 32
+				print_str="300bps"
+			case 16
+				print_str="600bps"
+			case else
+				print_str="28800bps"
+			end select
+		end if
+
+	case PRD_FC:  'Flow Control
+		if ser.flowcontrol=DISABLED then
+			print_str="None"
+		else if ser.flowcontrol=PL_SER_FC_RTSCTS then
+			print_str="RTS/CTS"
+		else
+			print_str="XON/XOFF"
+		end if
+	
+	case PRD_PR:  'Parity
+		select case ser.parity 
+		case PL_SER_PR_NONE:
+			print_str="None"
+		case PL_SER_PR_EVEN:
+			print_str="Even"
+		case PL_SER_PR_ODD:
+			print_str="Odd"
+		case PL_SER_PR_MARK:
+			print_str="Mark"
+		case PL_SER_PR_SPACE:
+			print_str="Space"
+		end select
+	
+	case PRD_DB:  'Data Bits
+		if ser.bits=PL_SER_BB_7 then print_str="7 bits/word" else print_str="8 bits/word"
+	
+	case PRD_CTS: 'CTS
+		if ser.ctsmap=PL_INT_NULL then
+			print_str="(unmapped)"
+		else
+			if io.lineget(cts_mapping(channel_num))=HIGH then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"
+		end if
+	
+	case PRD_DSR: 'DSR
+		if dsr_mapping(channel_num)=PL_IO_NULL then
+			print_str="(unmapped)"
+		else
+			if io.lineget(dsr_mapping(channel_num))=HIGH then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"
+		end if
+	
+	case PRD_RTS: 'RTS
+		if ser.rtsmap=PL_IO_NULL then
+			print_str="(unmapped)"
+		else
+			if io.lineget(ser.rtsmap)=HIGH then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"
+		end if
+	
+	case PRD_DTR: 'DTR
+		if dtr_mapping(channel_num)=PL_IO_NULL then
+			print_str="(unmapped)"
+		else
+			if io.lineget(dtr_mapping(channel_num))=HIGH then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"
+		end if
+	end select
+
+	sock.num=sock_num_backup
+	sock_setsend(print_str)
+end sub
+
+
+'=============================================================
+public sub html_proc_cmd
+	dim s as string
+	dim sSessionID as string
+
+	s = get_http_argument(sock.httprqstring,"opt=")
+	sSessionID = get_http_argument(sock.httprqstring,"session=")
+	Select case s
+		case "login":
+			if login(CMD_MODE_HTTP,sSessionID,0)<>OK then
+				html_login_message=HLM_PRIORITY_REJECTED
+				logout()
+				sock_setsend("onload = IndexPage()")
+			end if
+		
+		case "logout":
+			sock_setsend("onload = IndexPage()")
+			html_login_message = HLM_LOGGED_OUT
+			logout()
+
+		case "init":
+			proc_device_op("I")
+			html_reboot_flag = YES
+			sock_setsend("onload = IndexPage()")		
+		
+		case "reboot":
+			html_reboot_flag = YES
+			sock_setsend("onload = IndexPage()")
+	end select
+end sub
+
+
+'=============================================================
+public sub sock_setsend(byref s as string)
+'Making sure the tx buffer is free before adding more data to the buffer.
+	
+	while sock.txfree<len(s)
+		if sock.statesimple<>PL_SSTS_EST then 
+			sock.txclear
+			exit sub
+		end if
+	wend
+	sock.setdata(s)
+	sock.send
+end sub
+
+'=============================================================
+public function get_http_argument(byref http_req_string as string, byref argument as string) as string
+'Get one specific argument from the http request string.
+'For example If http_req_string = http://index.html&p1=abc&p2=def by calling this function, 
+'get_http_argument(sock.httprqstring,"p1="), the function returns "abc"
+	dim x, y as byte
+	x = instr(1, http_req_string, argument,1)
+	if (x = 0) then
+		get_http_argument = ""
+		exit function
+	end if
+	x = x + len(argument)
+	y = instr(x, http_req_string, "&",1)
+	if (y = 0) then
+		y = instr(x, http_req_string, " ",1)
+		if (y = 0) then
+			y = len(argument)
+		end if
+	end if
+	get_http_argument = mid(http_req_string, x, y - x)
+end function
+
+'=============================================================
+public function mod_http_argument(byref http_req_string as string, byref argument as string, byref arg_val as string) as string
+'modify the value of argument in the http_req_string, if the argument doesn't exist, add it the end of http_req_string 
+	dim pos1, pos2 as byte
+	dim s as string
+
+	if http_req_string = "" then 
+		mod_http_argument = "?"+argument+"="+arg_val
+		exit function
+	end if
+	'remove the tailing infor
+	pos1 = instr(1,http_req_string," HTTP",1)
+	http_req_string = left(http_req_string,pos1-1)
+	
+	'find the argument
+	pos1 = instr(1,http_req_string,argument,1)
+	
+	'if the argument already exit, modify the value to arg_val, else add it to the end of http_req_string
+	if pos1 > 0 then 
+		pos1 = pos1+len(argument)-1
+		pos2 = instr(1,http_req_string,"?",1)
+		if pos2 > 0 then http_req_string = right(http_req_string,len(http_req_string)-pos2)
+		s = "?"+left(http_req_string,pos1)+"="+arg_val
+		
+		'the argument could be in the middle to the http_req_string
+		pos2 = instr(pos1,http_req_string,"&",1)
+		if pos2 > 0 then
+			s = s+right(http_req_string,len(http_req_string)-pos2+1)
+			mod_http_argument = s
+			exit function
+		else
+			mod_http_argument = s
+			exit function
+		end if
+	else
+		mod_http_argument = "?"+http_req_string+"&"+argument+"="+arg_val
+	end if
+end function
+'=============================================================
+public sub html_spec_chr_convert(byref http_req_string as string)
+	dim char_ascii as string(2)
+	dim char_str as string(1)
+	dim pos1 as byte
+	dim temp1, temp2 as string
+	do 
+		pos1 = instr(1,http_req_string,"%",1) 
+		if pos1 > 0 then
+			char_ascii = mid(http_req_string,pos1+1,2)
+			char_str = chr("&h"+char_ascii)
+			temp1 = left(http_req_string,pos1-1)
+			temp2 = right(http_req_string,len(http_req_string)-pos1-2)
+			http_req_string = temp1 + char_str + temp2
+		end if	
+	loop while pos1 > 0
+end sub

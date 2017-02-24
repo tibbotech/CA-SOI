@@ -1,0 +1,45 @@
+>>ON	E	S	1	0	8	I	^
+>>DN	E	S	1	0	8	I	^
+>>DH	E	B	1	0	1	A	0
+>>IP	E	D	1	4	4	I	192.168.1.40
+>>GI	E	D	1	4	4	A	1.0.0.1
+>>NM	E	D	1	4	4	A	0.0.0.0
+>>PW	E	S	1	0	6	A	^
+>>CT	E	B	1	0	99	A	5
+>>TP	E	B	1	0	1	A	0
+>>BU	E	B	1	0	1	A	0
+>>IB	E	B	1	0	1	A	0
+>>RM	E	B	1	0	2	A	0
+>>SF	E	B	1	0	1	A	0
+>>PN	E	W	1	0	65534	A	1001
+>>CM	E	B	1	0	3	A	1
+>>DI	E	D	1	4	4	A	1.0.0.1
+>>DP	E	W	1	0	65535	A	1001
+>>ND	E	B	1	0	1	A	0
+>>SI	E	B	1	0	2	A	0
+>>FC	E	B	1	0	2	A	0
+>>DT	E	B	1	0	1	A	0
+>>DS	E	B	1	0	1	A	0
+>>BR	E	B	1	0	11	A	5
+>>PR	E	B	1	0	4	A	0
+>>BB	E	B	1	0	1	A	1
+>>MD	E	B	1	0	255	A	1
+>>SE	E	B	1	0	2	A	0
+>>EC	E	B	1	0	255	A	1
+>>RC	E	B	1	0	1	A	1
+>>OP	E	B	1	0	1	A	0
+>>NB	E	B	1	0	255	A	0
+>>ND	E	B	1	0	1	A	0
+>>WE	E	B	1	0	2	I	0
+>>WA	E	S	1	0	22	I	^
+>>WS	E	B	1	0	4	I	0
+>>WP	E	S	1	0	26	I	^
+>>WD	E	B	1	0	1	I	0
+>>WI	E	D	1	4	4	I	1.0.0.1
+>>WG	E	D	1	4	4	I	1.0.0.1
+>>WN	E	D	1	4	4	I	0.0.0.0
+#define STG_DESCRIPTOR_FILE "settings_1p.xtxt"
+#define STG_MAX_NUM_SETTINGS 40
+#define STG_RAM_ARRAY_SIZE 0
+#define STG_MAX_SETTING_NAME_LEN 2
+#define STG_MAX_SETTING_VALUE_LEN 26

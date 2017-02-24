@@ -1,0 +1,125 @@
+
+<?
+	include "global.tbh"
+
+?>
+<html>
+<HEAD>
+<META HTTP-EQUIV="Expires" CONTENT="Tue, 01 Jan 1980 1:00:00 GMT">
+<META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+<script type="text/javascript">
+
+function reboot_confirm()
+{
+var r=confirm("<?sock_setsend(HTML_CONFIRM_REBOOT)?>");
+if (r==true)
+  {
+  window.top.location.replace("httpcmd.html?opt=reboot&session=<?sock_setsend(login_data)?>")
+  }
+}
+
+function init_confirm()
+{
+var r=confirm("<?sock_setsend(HTML_CONFIRM_INITIALIZE)?>");
+if (r==true)
+  {
+  window.top.location.replace("httpcmd.html?opt=init&session=<?sock_setsend(login_data)?>")
+  }
+}
+function logout_confirm()
+{
+var r=confirm("<?sock_setsend(HTML_CONFIRM_LOG_OFF)?>");
+if (r==true)
+  {
+  window.top.location.replace("httpcmd.html?opt=logout&session=<?sock_setsend(login_data)?>")
+  }
+}
+</script>
+<style type="text/css">
+body
+{
+font-family: arial, 'sans serif';
+background-color:#663144;
+color: #E0D6B8;
+font-size: 100%;
+}
+
+a
+{
+float:left;
+width:10em;
+text-decoration:none;
+color:#E0D6B8;
+background-color:#663144;
+padding:0.2em 0.6em;
+}
+a:hover {background-color:#76A0B0;}
+li {display:inline;}
+</style>
+</HEAD>
+
+<body>
+
+<h3>TIBBO</h3>
+<? if login_mode=CMD_MODE_HTTP then ?>
+	<a href = 'settings.html?session=<?sock_setsend(login_data)?>' target = showframe> General Settings </a> <br>
+	<br>
+<?	#if WLN_AVAILABLE=0
+		goto skip_wifi
+	#endif
+?>
+	<a href = 'wifi.html?session=<?sock_setsend(login_data)?>' target = showframe> Wi-Fi Settings </a> <br>
+	<br>
+<?
+skip_wifi:
+?>	
+
+<?	#if SUPPORTS_GPRS=0
+		goto skip_gprs
+	#endif
+?>
+	<a href = 'gprs.html?session=<?sock_setsend(login_data)?>' target = showframe> GPRS Settings </a> <br>
+	<br>
+<?
+skip_gprs:
+?>	
+	<a href = 'port.html?ch=0&session=<?sock_setsend(login_data)?>' target = showframe> Serial Settings </a> <br>
+	<br>
+	<a href = 'routing_status.html?ch=0' target = showframe> Routing Status </a> <br>
+	<br>
+	<a href = 'leftpane.html?session=<?sock_setsend(login_data)?>' onclick='init_confirm()'> Initialize </a>  <br>
+	<br>
+	<a href = 'leftpane.html?session=<?sock_setsend(login_data)?>' onclick='reboot_confirm()'> Reboot </a>  <br>
+	<br>
+	<a href = 'leftpane.html?session=<?sock_setsend(login_data)?>' onclick='logout_confirm()'> Log out </a> <br>
+	<br>
+	<br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+
+<?
+else
+?>
+	<a href = 'routing_status.html?ch=0' target = showframe> Routing Status </a> <br>
+	<br>
+	<a href = 'index.html' target = _top> Login </a> <br>
+	<br>
+	<br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+<?
+end if
+	sock_setsend("Owner Name: "+stg_get("ON",0)+"<br>")
+	sock_setsend("Device Name: "+stg_get("DN",0)+"<br>")
+	
+	select case current_interface
+	case PL_SOCK_INTERFACE_NET:
+		sock_setsend("Network i/f: Ethernet<br>IP: "+net.ip+"<br>MAC: "+net.mac+"<br>")
+	
+	#if WLN_AVAILABLE	
+		case PL_SOCK_INTERFACE_WLN:
+			sock_setsend("Network i/f: Wi-Fi<br>IP: "+wln.ip+"<br>MAC: "+wln.mac+"<br>")
+	#endif
+	
+	case PL_SOCK_INTERFACE_PPP:
+		sock_setsend("Network i/f: GPRS<br>IP: "+ppp.ip+"<br>")
+	end select
+	?>
+</BODY>
+</html>

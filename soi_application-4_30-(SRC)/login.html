@@ -1,0 +1,36 @@
+<?
+	include "global.tbh"
+	dim flag as ok_ng
+?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD W3 HTML//EN">
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="Expires" CONTENT="Tue, 01 Jan 1980 1:00:00 GMT">
+<META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+
+<?
+
+flag=password_verify?>
+<script type="text/javascript">
+function HomePage()
+{
+	window.top.location.replace("home.html")
+}
+function IndexPage()
+{
+  	window.top.location.replace("Index.html")
+}
+
+</script>
+
+</HEAD>
+<body <?
+	
+	if flag=NG then
+		sock_setsend("onload='IndexPage()'")  'redirect back to index page
+	else
+		sock_setsend("onload ='HomePage()'")   'proceed to the setup page
+	end if
+	?> >
+</body>
+</html>

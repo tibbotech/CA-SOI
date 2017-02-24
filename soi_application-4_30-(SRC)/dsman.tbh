@@ -1,0 +1,47 @@
+'***********************************************************************************************************
+'			DS MANAGER LIBRARY
+'***********************************************************************************************************
+
+'1- debug output in console.
+'0- no debug output.
+#ifndef DSMAN_DEBUG_PRINT
+	#define DSMAN_DEBUG_PRINT 0
+#endif
+
+'Name of the DS Manager item descriptor file
+'This file must be in your project and contain correct data!
+#ifndef DSMAN_DESCRIPTOR_FILE
+	#define DSMAN_DESCRIPTOR_FILE "dsman.txt"
+#endif
+
+'Set this to the actual number of active data lines in the configuration file
+'Save memory -- set the exact number you need!
+'Range: 1-255
+#ifndef DSMAN_MAX_NUM_LINES
+	#define DSMAN_MAX_NUM_LINES 1
+#endif
+
+enum en_dsman_status_codes	
+	EN_DSMAN_STATUS_OK,					'Operation completed successfully
+	EN_DSMAN_STATUS_NOT_STARTED			'Stg_start() was not used or failed
+	EN_DSMAN_STATUS_WRONG_DEFINE,		'Wrong #define value
+	EN_DSMAN_STATUS_WRONG_DESCRIPTOR	'Wrong descriptor file data
+end enum
+
+const FIRMWARE_VERSION="{ds4.30}"
+const LOGIN_TOUT_CONST=600
+const MAX_NET_CMD_LEN=131 'max length of network command
+const MAX_NET_RPL_LEN=255 'max length of network replies
+
+declare telnet_cmd_str as string(MAX_NET_CMD_LEN)
+
+const MAX_SER_CMD_LEN=64 'max length of serial commands
+const MAX_SER_RPL_LEN=255 'max length of serial replies
+
+declare function dsman_start(config_data as word) as en_dsman_status_codes
+
+declare sub net_cmd_proc(byref s as string(MAX_NET_CMD_LEN), cmd_mode as cmd_modes, byref cmd_data as string(32), cmd_bcast as no_yes, error_mode as no_yes)
+declare sub sock_closed_check_net_login(sock_num as byte)
+declare sub ser_cmd_proc(byref cmd_str as string,cmd_source_ser_port as word,error_mode as no_yes)
+
+declare ser_cmd_str as string(MAX_SER_CMD_LEN)

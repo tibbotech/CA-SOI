@@ -1,0 +1,469 @@
+'SUPPORTED PLATFORMS & RELATED CAPABILITIES--------------------------
+
+#define DHCP_DEBUG_PRINT 0
+#define DEV_DEBUG_PRINT 0
+
+#define SIMULATE_ETHER_OFF_BY_BUTTON 0 'set to 1 to use button for simulating unplugged Ethernet cable
+
+'Three major app configuration:
+#define PORT_SCHEME_4P 0	'four independent serial ports
+#define PORT_SCHEME_4C 1	'four serial channels
+#define PORT_SCHEME_1P 2	'one serial port
+
+#if PLATFORM_ID=DS1202
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 0
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4C
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=DS1206
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 0
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4C
+	#define POWER_ON_PIN9 1
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=EM1000 or PLATFORM_ID=EM1001 or PLATFORM_ID=EM2000 'also used for DS100x devices
+	#define SUPPORTS_422_485_4 1
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 1
+	#define SIGNAL_STRENGTH_INDICATION 1
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=EM1000W or PLATFORM_ID=EM1001W or PLATFORM_ID=EM2000W
+	#define SUPPORTS_422_485_4 1
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 1
+	#define SIGNAL_STRENGTH_INDICATION 1
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define WLN_WPA 1
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=EM1202
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 0
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=EM1202W
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 0
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define WLN_WPA 1
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=EM1206
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 0
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4C
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=EM1206W
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 0
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4C
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define WLN_WPA 1
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=EM500
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 0
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 0
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_1P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 0
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=EM500W
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 0
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 0
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_1P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 0
+	#define WLN_WPA 0
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=NB1010
+	#define SUPPORTS_422_485_4 1
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 1
+	#define SIGNAL_STRENGTH_INDICATION 1
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 1
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=NB1010W
+	#define SUPPORTS_422_485_4 1
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 1
+	#define SIGNAL_STRENGTH_INDICATION 1
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 1
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define WLN_WPA 1
+	#define SUPPORTS_DISPLAY 0
+
+#elif PLATFORM_ID=DS1102W
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 1
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 2
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4C
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define WLN_WPA 1
+	#define SUPPORTS_DISPLAY 1
+
+#elif PLATFORM_ID=DS1101W
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 2
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4C
+	#define POWER_ON_PIN9 1
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define WLN_WPA 1
+	#define SUPPORTS_DISPLAY 1
+
+#elif PLATFORM_ID=DS1100
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 0
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 0
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_1P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 0
+	#define SUPPORTS_DISPLAY 0
+#elif PLATFORM_ID=TPP3W or PLATFORM_ID=TPP3WG2
+	#define SUPPORTS_422_485_4 1
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 1
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_4P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 1
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define WLN_WPA 1
+	#define SUPPORTS_DISPLAY 0
+#else
+	  XXXX 'intentional garbage: currently selected platform is not supported!
+#endif
+
+'PLATFORM-RELATED ASSIGNMENTS----------------------------------------
+#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_4C
+	const SER0_HDFD=PL_IO_NUM_18_HDFD	'HIGH for full-duplex, LOW for half-duplex
+	const SER0_RSMD=PL_IO_NUM_17_RSMD	'HIGH for RS422/485, LOW for RS232
+#endif
+
+#if SUPPORTS_422_485_4 and DEVICE_PORT_SCHEME=PORT_SCHEME_4P
+		'selection of serial port modes (232/422/485)
+		const SER0_HDFD=PL_IO_NUM_32	'HIGH for full-duplex, LOW for half-duplex
+		const SER0_RSMD=PL_IO_NUM_33	'HIGH for RS422/485, LOW for RS232
+		const SER1_HDFD=PL_IO_NUM_34
+		const SER1_RSMD=PL_IO_NUM_35
+		const SER2_HDFD=PL_IO_NUM_36
+		const SER2_RSMD=PL_IO_NUM_37
+		const SER3_HDFD=PL_IO_NUM_38
+		const SER3_RSMD=PL_IO_NUM_39
+#endif
+
+const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made with this
+
+
+#if DEVICE_PORT_SCHEME=PORT_SCHEME_4P or DEVICE_PORT_SCHEME=PORT_SCHEME_4C
+	#define DSMAN_MAX_NUM_LINES 121
+	const NUM_SERIAL_PORTS=4						'(must not exceed MAX_NUM_SERIAL_PORTS)  +++ ULYSSES +++
+	#define DSMAN_DESCRIPTOR_FILE "dsman_4p_4c.txt"
+	
+#else
+	#define DSMAN_MAX_NUM_LINES 42 
+	const NUM_SERIAL_PORTS=1						'max possible number of serial ports (must not exceed ser.numofports)
+	#define DSMAN_DESCRIPTOR_FILE "dsman_1p.txt"	'SDF file used by the DS Manager
+#endif
+
+#if PLATFORM_ID=EM500W
+	#define	HTML_WIFI_DEF "html_config_wifi_em500w.txt"
+#else
+	#define	HTML_WIFI_DEF "html_config_wifi.txt"
+#endif
+
+#define HTML_SETTINGS_DEF "html_config_settings.txt"
+#define	HTML_GPRS_DEF "html_config_gprs.txt"
+#define	HTML_PORT_DEF "html_config_ports.txt"
+
+
+#if WLN_AVAILABLE
+	#if PLATFORM_ID=EM500W
+		#define WLN_RESET_MODE 1
+	#elif PLATFORM_ID=EM1000W or PLATFORM_ID=EM2000W or PLATFORM_ID=EM1001W or PLATFORM_ID=NB1010W or PLATFORM_ID=TPP2W or PLATFORM_ID=TPP3W or PLATFORM_ID=TPP2WG2 or PLATFORM_ID=TPP3WG2
+		#define WLN_RST PL_IO_NUM_51
+		#define WLN_CS PL_IO_NUM_49
+		#define WLN_DI PL_IO_NUM_52
+		#define WLN_DO PL_IO_NUM_50
+		#define WLN_CLK PL_IO_NUM_53
+	#elif PLATFORM_ID=EM1202W
+		#define WLN_RST PL_IO_NULL
+		#define WLN_CS PL_IO_NULL
+		#define WLN_DI PL_IO_NULL
+		#define WLN_DO PL_IO_NULL
+		#define WLN_CLK PL_IO_NULL
+	#elif PLATFORM_ID=EM1206W or PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+		#define WLN_RST PL_IO_NUM_11
+		#define WLN_CS PL_IO_NUM_15
+		#define WLN_DI PL_IO_NUM_12
+		#define WLN_DO PL_IO_NUM_13
+		#define WLN_CLK PL_IO_NUM_14
+	#endif
+#endif
+
+
+#if SUPPORTS_GPRS
+	#if PLATFORM_ID=TPP3W or PLATFORM_ID=TPP3WG2
+		#define GPRS_RESET PL_IO_NUM_7
+		#define GPRS_POWER PL_IO_NUM_39
+		#define GPRS_SER_PORT 3
+		#define GPRS_DEBUG_PRINT 1
+	#endif
+#else
+	#define GPRS_SWITCH PL_IO_NULL
+	#define GPRS_RESET PL_IO_NULL
+#endif
+
+
+#if DEVICE_PORT_SCHEME=PORT_SCHEME_4P
+	const BASE_OF_INT_LINES=PL_IO_NUM_16_INT0
+	
+	const SER0_CTS_INT=PL_INT_NUM_0		'must be from pl_int_num range (NOT pl_io_num)
+	const SER0_RTS=PL_IO_NUM_0			'must be from pl_io_num range
+	const SER0_DSR=PL_IO_NUM_20_INT4	'must be from pl_io_num range
+	const SER0_DTR=PL_IO_NUM_4			'must be from pl_io_num range
+		
+	const SER1_CTS_INT=PL_INT_NUM_1		'must be from pl_int_num range (NOT pl_io_num)
+	const SER1_RTS=PL_IO_NUM_1			'must be from pl_io_num range
+	const SER1_DSR=PL_IO_NUM_21_INT5	'must be from pl_io_num range
+	const SER1_DTR=PL_IO_NUM_5			'must be from pl_io_num range
+
+	const SER2_CTS_INT=PL_INT_NUM_2		'must be from pl_int_num range (NOT pl_io_num)
+	const SER2_RTS=PL_IO_NUM_2			'must be from pl_io_num range
+	const SER2_DSR=PL_IO_NUM_22_INT6	'must be from pl_io_num range
+	const SER2_DTR=PL_IO_NUM_6			'must be from pl_io_num range
+
+	const SER3_CTS_INT=PL_INT_NUM_3		'must be from pl_int_num range (NOT pl_io_num)
+	const SER3_RTS=PL_IO_NUM_3			'must be from pl_io_num range
+	const SER3_DSR=PL_IO_NUM_23_INT7	'must be from pl_io_num range
+	const SER3_DTR=PL_IO_NUM_7			'must be from pl_io_num range
+
+#elif DEVICE_PORT_SCHEME=PORT_SCHEME_4C
+	enum MAPPING
+		M0,M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15,M16
+	end enum
+
+	#if PLATFORM_ID=DS1202
+		'OLD MAPPING (EM1202EV/DS1202)
+		'serial port lines:	RX0	TX0	RX1	TX1	RX2	TX2	RX3	TX3
+		'interrupt lines:	0	4	1	5	2	6	3	7
+
+		const L0=PL_IO_NUM_0_RX0_INT0
+		const L1=PL_IO_NUM_1_TX0_INT4
+		const L2=PL_IO_NUM_2_RX1_INT1
+		const L3=PL_IO_NUM_3_TX1_INT5
+		const L4=PL_IO_NUM_4_RX2_INT2
+		const L5=PL_IO_NUM_5_TX2_INT6
+		const L6=PL_IO_NUM_6_RX3_INT3
+		const L7=PL_IO_NULL
+		
+		const I0=PL_INT_NUM_0
+		const I1=PL_INT_NUM_4
+		const I2=PL_INT_NUM_1
+		const I3=PL_INT_NUM_5
+		const I4=PL_INT_NUM_2
+		const I5=PL_INT_NUM_6
+		const I6=PL_INT_NUM_3
+		const I7=PL_IO_NULL
+	#else
+		'NEW MAPPING (EM1206, DS1206)
+		'serial port lines:	RX0	TX0	RX1	TX1	RX2	TX2	RX3	TX3
+		'interrupt lines:	0	1	2	3	4	5	6	7
+
+		const L0=PL_IO_NUM_0_RX0_INT0
+		const L1=PL_IO_NUM_1_TX0_INT1
+		const L2=PL_IO_NUM_2_RX1_INT2
+		const L3=PL_IO_NUM_3_TX1_INT3
+		const L4=PL_IO_NUM_4_RX2_INT4
+		const L5=PL_IO_NUM_5_TX2_INT5
+		const L6=PL_IO_NUM_6_RX3_INT6
+		#if PLATFORM_ID=EM1206 or PLATFORM_ID=EM1206W
+			const L7=PL_IO_NUM_7_TX3_INT7
+		#else	
+			const L7=PL_IO_NULL                                       'PL_IO_NUM_7_EMPTY
+		#endif
+	
+		const I0=PL_INT_NUM_0
+		const I1=PL_INT_NUM_1
+		const I2=PL_INT_NUM_2
+		const I3=PL_INT_NUM_3
+		const I4=PL_INT_NUM_4
+		const I5=PL_INT_NUM_5
+		const I6=PL_INT_NUM_6
+		const I7=PL_IO_NULL                                            'PL_INT_NUM_7
+	#endif
+
+#elif PLATFORM_ID=EM500W
+	const BASE_OF_INT_LINES=PL_IO_NUM_0_INT0
+	const SER0_CTS_INT=PL_IO_NUM_0_INT0	'must be from pl_int_num range (NOT pl_io_num)
+	const SER0_RTS=PL_IO_NUM_2			'must be from pl_io_num range
+	const SER0_DSR=PL_IO_NUM_1_INT1		'must be from pl_io_num range
+	const SER0_DTR=PL_IO_NUM_3			'must be from pl_io_num range
+
+#elif PLATFORM_ID=DS1100
+	const BASE_OF_INT_LINES=PL_IO_NUM_0_CTS_INT0
+	const SER0_CTS_INT=PL_IO_NUM_0_CTS_INT0			'must be from pl_int_num range (NOT pl_io_num)
+	const SER0_RTS=PL_IO_NUM_2_RTS					'must be from pl_io_num range
+	const SER0_DSR=PL_IO_NUM_1_DSR_INT1				'must be from pl_io_num range
+	const SER0_DTR=PL_IO_NUM_3_DTR					'must be from pl_io_num range
+#endif
+
+'DEFINES-------------------------------------------------------------
+
+#define DHCP_MAX_RETRY_DELAY 2
+#define SOCK_MAX_SIGNATURE_LEN 4
+#define GPRS_PAYLOAD_SIZE 2
+
+#if PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+	#define BEEP_DIVIDER 16203
+#else
+	#define BEEP_DIVIDER 21600
+#endif
+
+'INCLUDES------------------------------------------------------------
+
+#if DEVICE_PORT_SCHEME=PORT_SCHEME_4P or DEVICE_PORT_SCHEME=PORT_SCHEME_4C
+	includepp "settings_4p_4c.xtxt"
+#else
+	includepp "settings_1p.xtxt"
+#endif
+
+include "settings\trunk\settings.tbh"
+include "dhcp\trunk\dhcp.tbh"
+include "sock\trunk\sock.tbh"
+include "wln\trunk\wln.tbh"
+include "gprs\trunk\gprs.tbh"
+include "html_session.tbh"
+include "boot.tbh"
+include "device.tbh"
+include "html_setting.tbh"
+include "error.tbh"
+include "html_common.tbh"
+include "dsman.tbh"
+include "lcd.tbh"
+
+'DECLARATIONS--------------------------------------------------------
+
+'ASCII for special characters
+const TAB=9
+const LF=10
+const CR=13
+const STX=2
+const ETX=3
+
+'<<<<<<<<<<<<<< TEMPORARY <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#define MAX_NUM_INTERFACES 4
+declare sock_udp as byte
+declare sock_notif(MAX_NUM_SERIAL_PORTS) as byte
+declare sock_comm(MAX_NUM_SERIAL_PORTS) as byte
+declare sock_http(NUM_HTTP_SOCKETS) as byte
+declare sock_telnet as byte
+declare current_interface as pl_sock_interfaces
+declare interface_ready(MAX_NUM_INTERFACES) as no_yes
+declare html_reboot_flag as no_yes
+declare sub close_interface_sockets(interface as pl_sock_interfaces)
+declare wln_password as string(32)
+declare param_we as en_param_we
+declare param_ge as en_param_ge
+declare param_wa as string(32)
+declare manufacture_flag as byte 'special mode, this flag used for led test,.. during production (steve)
+declare manufacture_login as no_yes 'special flag, this flag used for led test,.. during production (steve)
+#if WLN_AVAILABLE
+	declare param_ws as pl_wln_security_modes
+#endif
+
+declare function validate_ip(byref ip as string) as string
+declare ip_configured(MAX_NUM_INTERFACES) as no_yes
+declare dhcp_failed(MAX_NUM_INTERFACES) as no_yes
+declare sub signal_strength_indication_init()
+declare sub signal_strength_set(strength as byte)
+declare param_ga as string(16)
+declare param_gp as string(16)
+declare num_wln_failures as byte
+#define MAX_NUM_WLN_FAILURES 5
+declare gprs_already_started,wln_already_started as no_yes
+declare wln_error,gprs_error as no_yes
+declare html_print_setting_flags_settings_page, html_print_setting_flags_ports_page as word
+declare sub ethernet_link_state_change(new_state as pl_net_linkstate)
+declare sub dev_debugprint(byref print_data as string)
+declare sub enable_comm_channels(pages_to_distribute as byte)
+declare sub set_comm_channel_buffers(channel_num as byte, num_buffers as byte, ser_port_in_prog_mode as no_yes) '<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+'<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+

@@ -1,0 +1,14 @@
+bit0	multi-port configuration
+bit1	multi-channel configuration
+bit2	Power on pin 9 available
+bit3	Wi-Fi available
+bit4	GPRS available
+bit5	serial port modes are 232, 485, and 422
+bit6	serial port modes are full-duplex and half-duples
+
+bits76543210
+
+>>&b00000000	GE	GPRS Mode 						B,L,0-Disabled;1-Enabled (on demand);2-Enabled (permanently);	^
+>>&b00000000	GA	ATDT Command Parameter			S,I,16	^
+>>&b00000000	GP	GPRS Access Point Name			S,I,16	^
+

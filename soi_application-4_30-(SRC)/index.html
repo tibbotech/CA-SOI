@@ -1,0 +1,82 @@
+<?
+	include "global.tbh"
+	declare html_reboot_flag as no_yes
+	declare index_page_socknum as byte
+
+	index_page_socknum = sock.num
+?>
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD W3 HTML//EN">
+<HTML><HEAD>
+<META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+<META HTTP-EQUIV="Expires" CONTENT="Tue, 01 Jan 1980 1:00:00 GMT">
+<style type="text/css">
+h1,h2,h3
+{
+font-family: arial, 'sans serif'; 
+}
+
+h1,h2,h3,hr
+{
+color: #E0D6B8;
+}
+body
+{
+background-color: #E0D6B8;
+}
+
+table
+{
+background-color:#663144;
+font-family: arial, 'sans serif';
+color: #E0D6B8;
+}
+table.message
+{
+background-color:#E0D6B8;
+font-family: arial, 'sans serif';
+color: #3A161A;
+}
+a
+{
+text-decoration:none;
+color:#E0D6B8;
+background-color:#663144;
+padding:0.2em 0.6em;
+}
+a:hover {background-color:#76A0B0;}
+li {display:inline;}
+</style>
+</HEAD>
+	<BODY>
+		<div>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<table width=40% align=center cellspacing="5" cellpadding="5">
+			<tr align=center>
+			<td><h1><b>Tibbo Device Server</b></h1></td>
+			</tr>
+			<tr> <td>
+			<table align=center width=100% border='0'>
+			<form action='login.html' method='post'>
+			<tr align=center><td width=40%><b>Please Enter Password</b></td></tr>			
+			<tr><td><br></td></tr>
+			<tr align=center><td><input type='password' size = '15' maxlength = '6' name='pw' value='' tabindex = 1></td></tr>
+			<tr><td><br></td></tr>
+			<tr align=center><td><input type = 'submit' value = '        Login      ' align = left tabindex = 2></td></tr></form></table>	
+			</td></tr>
+			</table>
+			<br>
+			<table width = 40% align= center border = "0" class = 'message'>
+				<tr><td align=center><a href = 'rs_page.html'> Routing Status </a></td></tr>
+			</table>			
+			<br><br>
+			<table width = 40% align= center border = "0" class = 'message'>
+				<tr><td align=center><?print_login_state ?></td></tr>
+			</table>
+		</div>
+	</BODY>
+</HTML>

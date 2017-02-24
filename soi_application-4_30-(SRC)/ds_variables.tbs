@@ -1,0 +1,4 @@
+public dim owner_name,device_name as string(8)
+
+
+public dim param_br as standard_baudrates

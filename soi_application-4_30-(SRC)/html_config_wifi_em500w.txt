@@ -1,0 +1,18 @@
+bit0	multi-port configuration
+bit1	multi-channel configuration
+bit2	Power on pin 9 available
+bit3	Wi-Fi available
+bit4	GPRS available
+bit5	serial port modes are 232, 485, and 422
+bit6	serial port modes are full-duplex and half-duples
+
+bits76543210
+
+>>&b00000000	WE	Wi-Fi Mode						B,L,0-Disabled;1-Enabled (on demand);2-Enabled (permanently);	^
+>>&b00000000	WA	Access Point Name				S,I,24	^
+>>&b00000000	WS	Security						B,L,0-Disabled;1-WEP64;2-WEP128;	^
+>>&b00000000	WP	Password						S,I,24	^
+>>&b00000000	WD	DHCP							B,L,0-Disabled;1-Enabled;	^
+>>&b00000000	WI	IP-address 						S,I,15	^
+>>&b00000000	WG	Gateway IP-address 				S,I,15	^
+>>&b00000000	WN	Subnet Mask						S,I,15	^

@@ -1,0 +1,40 @@
+enum enum_lcd_pages
+	LCD_PAGE_NET
+	LCD_PAGE_WLN
+	'LCD_PAGE_GPRS	'disable until we have something with GPRS and display
+	LCD_PAGE_CH1
+	LCD_PAGE_CH2
+	LCD_PAGE_CH3
+	LCD_PAGE_CH4
+	
+	LCD_PAGE_SER_PROG_MODE
+	LCD_PAGE_ERROR
+	LCD_PAGE_LOGO
+	LCD_PAGE_INIT_START
+	LCD_PAGE_INIT_DONE
+
+	LCD_ADVANCE_PAGE 'this is not a state
+end enum
+
+enum enum_lcd_print_modes
+	LCD_PRINT_MODE_GENTLE		'do not print if display is OFF, do not print if we are on a different page
+	LCD_PRINT_MODE_STANDARD 	'do not print if we are on a different page
+	LCD_PRINT_MODE_AGGRESSIVE	'print under any contitions
+end enum
+
+enum enum_lcd_print_elements
+	LCD_PRINT_ELEMENT_ALL,
+	LCD_PRINT_ELEMENT_CH_OTF
+end enum
+
+
+declare lcd_on_ctr as word
+declare user_uses_button as no_yes
+
+declare sub lcd_init()
+declare sub lcd_display_page(page as enum_lcd_pages, mode as enum_lcd_print_modes, element as enum_lcd_print_elements)
+declare sub lcd_proc_timer()
+declare sub lcd_show_wln_mkey_progress(progress as byte)
+declare sub lcd_show_wln_mkey_message()
+declare function lcd_get_current_page() as enum_lcd_pages
+declare sub lcd_display_on()

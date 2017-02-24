@@ -1,0 +1,44 @@
+>>&b00000000	I=$GENERAL;D=General;T=GROUP
+>>&b00000000	I=ON;D=Owner name;T=STRING;C=EDIT;MAXLEN=8;F=R*
+>>&b00000000	I=DN;D=Device name;T=STRING;C=EDIT;MAXLEN=8;F=R*
+>>&b00000000	I=DH;D=DHCP;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;F=R
+>>&b00000000	I=IP;D=IP-address;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
+>>&b00000000	I=GI;D=Gateway IP-address;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
+>>&b00000000	I=NM;D=Subnet mask;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
+
+>>&b00001000	I=$WI-FI;D=Wi-Fi;T=GROUP
+>>&b00001000	I=WE;D=Wi-Fi Mode;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled (on demand)/1/2- Enabled (permanently)/2
+>>&b00001000	I=WA;D=Access Point Name;T=STRING;C=EDIT;MAXLEN=22;S=WE!=0?"e":"i";F=R*
+>>&b00001000	I=WS;D=Security;T=INT;C=STATIC;S=WE!=0?"e":"i";O=0- Disabled/0/1- WEP64/1/2- WEP128/2          
+>>&b00001000	I=WP;E=1;D=Password;T=STRING;C=EDIT;MAXLEN=26;S=WE!=0&&WS!=0?"e":"i";F=R*
+>>&b00001000	I=WD;D=DHCP;T=INT;C=STATIC;S=WE!=0?"e":"i";F=R;O=0- Disabled/0/1- Enabled/1;
+>>&b00001000	I=WI;D=IP-address;T=STRING;C=IPCTRL;S=WE!=0?"e":"i";F=R*
+>>&b00001000	I=WG;D=Gateway IP-address;T=STRING;C=IPCTRL;S=WE!=0?"e":"i";F=R*
+>>&b00001000	I=WN;D=Subnet mask;T=STRING;C=IPCTRL;S=WE!=0?"e":"i";F=R*
+
+>>&b00000000	I=$CHANNEL1;D=Channel1;T=GROUP
+>>&b00000000	I=CT;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT>255?"Maximum timeout is 255 minutes":""
+>>&b00000000	I=TP;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1
+>>&b00000000	I=BU;E=1;D=Broadcast UDP data;T=INT;C=STATIC;O=0- Reject/0/1- Accept/1;S=TP==0?"e":"i"
+>>&b00000000	I=IB;E=1;D=Inband commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP==1?"e":"i"
+>>&b00000000	I=RM;D=Routing Mode;T=INT;C=STATIC;O=0- Server (Slave)/0/1- Server OR Client (Master)/1/2- Client only/2
+>>&b00000000	I=SF;E=1;D=Accept connection from;T=INT;C=STATIC;O=0- Any IP-address/0/1- IP matching destination IP-address/1;S=RM!=2?"e":"i"
+>>&b00000000	I=PN;E=1;D=Port;T=INT;C=EDIT;V=PN>65534||PN==32767?"Port number must be between 0 and 65534 (excluding 32767)":"";S=RM!=2?"e":"i"
+>>&b00000000	I=CM;E=1;D=Connection mode;T=INT;C=STATIC;O=0- Immediately (on powerup)/0/1- On data OR command/1/2- On command only/2/3- On command OR DSR=HIGH/3;S=RM!=0?"e":"i"
+>>&b00000000	I=DI;E=1;D=Destination IP-address;T=STRING;C=IPCTRL;S=RM==1||RM==2||SF==1?"e":"i"
+>>&b00000000	I=DP;E=1;D=Destination port;T=INT;C=EDIT;S=RM!=0?"e":"i"
+>>&b00000000	I=ND;D=Notification destination;T=INT;C=STATIC;O=0- Last port/0/1- Port 65535/1/;S=IB==0?"e":"i"
+>>&b00000000	I=SI;D=Serial interface;T=INT;C=STATIC;O=0- Full-duplex/0/1- Half-duplex/1
+>>&b00000000	I=FC;D=RTS/CTS flow control;T=INT;C=STATIC;O=0- Disabled OR remote /0/1- Local RTS-CTS/1/2- Local XON-XOFF/2
+>>&b00000000	I=DT;D=DTR mode;T=INT;C=STATIC;O=0- Idle or remote /0/1- Indicate connection status/1
+>>&b00000000	I=DS;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT==0?"e":"i"
+>>&b00000000	I=BR;D=Baudrate;T=INT;C=STATIC;O=8-150bps/8/9-300bps/9/10-600bps/10/0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7
+>>&b00000000	I=PR;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
+>>&b00000000	I=BB;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1
+>>&b00000000	I=MD;D=Max intercharacter delay;T=INT;C=EDIT/SPIN/0/1/1/10;V=MD>255?"Maximum intercharacter delay is 255":""
+>>&b00000000	I=SE;D=Soft entry into serial programming mode;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled (option1)/1/2- Enabled (option2)/2
+>>&b00000000	I=EC;E=1;D=Escape character (ASCII code);T=INT;C=STATIC;M=CHARDLG;S=SE!=0?"e":"i";V=EC>255?"ASCII code cannot exceed 255":""
+>>&b00000000	I=RC;D=On-the-Fly commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1
+>>&b00000000	I=OP;E=1;D=Password for on-the-Fly commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=RC==1?"e":"i"
+>>&b00000000	I=NB;D=Notification bitmask;T=INT;C=EDIT;M=NBITMASK;V=NB>255?"Bitmask must be in the range from 0 to 255":""
+>>&b00000000	I=ND;D=Notification destination;T=INT;C=STATIC;O=0- Last port/0/1- Port 65535/1/;S=IB==0?"e":"i"

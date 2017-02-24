@@ -1,0 +1,51 @@
+>>ON	E	S	1	0	8	I	^
+>>DN	E	S	1	0	8	I	^
+>>DH	E	B	1	0	1	A	0
+>>IP	E	D	1	4	4	I	192.168.1.40
+>>GI	E	D	1	4	4	A	1.0.0.1
+>>NM	E	D	1	4	4	A	0.0.0.0
+>>PW	E	S	1	0	6	A	^
+>>CT	E	B	4	0	99	A	5
+>>TP	E	B	4	0	1	A	0
+>>BU	E	B	4	0	1	A	0
+>>IB	E	B	4	0	1	A	0
+>>RM	E	B	4	0	2	A	0
+>>SF	E	B	4	0	1	A	0
+>>PN	E	W	4	0	65534	A	1001/1002/1003/1004
+>>CM	E	B	4	0	3	A	1
+>>DI	E	D	4	4	4	A	1.0.0.1
+>>DP	E	W	4	0	65535	A	1001
+>>ND	E	B	4	0	1	A	0
+>>SI	E	B	4	0	2	A	0
+>>FC	E	B	4	0	2	A	0
+>>DT	E	B	4	0	1	A	0
+>>DS	E	B	4	0	1	A	0
+>>BR	E	B	4	0	13	A	5
+>>PR	E	B	4	0	4	A	0
+>>BB	E	B	4	0	1	A	1
+>>MD	E	B	4	0	255	A	1
+>>SE	E	B	4	0	2	A	0
+>>EC	E	B	4	0	255	A	1
+>>RC	E	B	4	0	1	A	1
+>>OP	E	B	4	0	1	A	0
+>>NB	E	B	4	0	255	A	0
+>>ND	E	B	4	0	1	A	0
+>>PC	E	B	1	0	14	I	0
+>>PS	E	B	1	0	1	I	0
+>>WE	E	B	1	0	2	I	0
+>>WA	E	S	2	0	32	I	^
+>>WS	E	B	2	0	4	I	0
+>>WP	E	S	2	0	32	I	^
+>>WD	E	B	1	0	1	I	0
+>>WI	E	D	1	4	4	I	1.0.0.1
+>>WG	E	D	1	4	4	I	1.0.0.1
+>>WN	E	D	1	4	4	I	0.0.0.0
+>>WK	E	S	2	0	32	I	^
+>>GE	E	B	1	0	2	I	0
+>>GA	E	S	1	0	16	I	*99\x23
+>>GP	E	S	1	0	16	A	INTERNET
+#define STG_DESCRIPTOR_FILE "settings_4p_4c.xtxt"
+#define STG_MAX_NUM_SETTINGS 46
+#define STG_RAM_ARRAY_SIZE 0
+#define STG_MAX_SETTING_NAME_LEN 2
+#define STG_MAX_SETTING_VALUE_LEN 32

@@ -1,0 +1,1535 @@
+include "global.tbh"
+
+'--------------------------------------------------------------------
+declare sub change_current_interface(new_interface as pl_sock_interfaces)
+declare sub set_comm_channel_buffers(channel_num as byte, num_buffers as byte, ser_port_in_prog_mode as no_yes)
+
+'--------------------------------------------------------------------
+public dim error_mode as no_yes
+public dim pat_canint as no_yes
+public dim sock_connection_holdoff_tmr(MAX_NUM_SERIAL_PORTS) as byte
+public dim overrun_se(MAX_NUM_SERIAL_PORTS) as no_yes
+public dim overrun_es(MAX_NUM_SERIAL_PORTS) as no_yes
+public dim login_mode as cmd_modes
+public dim login_sock as byte
+public dim login_data as string(32)
+public dim login_tout as word
+public dim io_state_changed(MAX_NUM_SERIAL_PORTS) as no_yes
+public dim dsr_state_curr(MAX_NUM_SERIAL_PORTS), dsr_state_prev(MAX_NUM_SERIAL_PORTS) as byte
+public dim dtr_state_curr(MAX_NUM_SERIAL_PORTS), dtr_state_prev(MAX_NUM_SERIAL_PORTS) as byte
+public dim cts_state_curr(MAX_NUM_SERIAL_PORTS), cts_state_prev(MAX_NUM_SERIAL_PORTS) as byte
+public dim rts_state_curr(MAX_NUM_SERIAL_PORTS), rts_state_prev(MAX_NUM_SERIAL_PORTS) as byte
+public dim most_resent_notif_dest_ip(MAX_NUM_SERIAL_PORTS) as string(15)
+public dim most_resent_notif_dest_port(MAX_NUM_SERIAL_PORTS) as word
+public dim overriding_destination_set(MAX_NUM_SERIAL_PORTS) as no_yes
+public dim can_show_data_transmission(MAX_NUM_SERIAL_PORTS) as no_yes
+public dim quick_init_flag as quick_init_states
+public dim sock_notif(MAX_NUM_SERIAL_PORTS) as byte
+public dim sock_comm(MAX_NUM_SERIAL_PORTS) as byte
+public dim sock_http(NUM_HTTP_SOCKETS) as byte
+public dim sock_telnet as byte
+public dim ip_configured(MAX_NUM_INTERFACES) as no_yes
+public dim dhcp_failed(MAX_NUM_INTERFACES) as no_yes
+public dim interface_ready(MAX_NUM_INTERFACES) as no_yes
+public dim current_interface as pl_sock_interfaces
+public dim wln_password as string(32)
+public dim num_wln_failures as byte
+public dim gprs_already_started,wln_already_started as no_yes
+public dim wln_error,gprs_error as no_yes
+public dim html_print_setting_flags_settings_page, html_print_setting_flags_ports_page as word
+public dim display_installed as no_yes
+#if WLN_AVAILABLE
+	public dim wln_recent_status as en_wln_status_codes
+#endif
+
+'Parameters that correspond to settings
+public dim param_dh as no_yes
+public dim param_rm(MAX_NUM_SERIAL_PORTS) as en_routing_modes		
+public dim param_sf(MAX_NUM_SERIAL_PORTS) as no_yes
+public dim param_cm(MAX_NUM_SERIAL_PORTS) as en_connection_modes
+public dim param_dt(MAX_NUM_SERIAL_PORTS) as no_yes
+public dim param_ds(MAX_NUM_SERIAL_PORTS) as low_high
+public dim param_rc(MAX_NUM_SERIAL_PORTS) as no_yes
+public dim param_op(MAX_NUM_SERIAL_PORTS) as no_yes
+public dim param_nb(MAX_NUM_SERIAL_PORTS) as byte
+public dim param_nd(MAX_NUM_SERIAL_PORTS) as last_65535
+public dim param_we as en_param_we
+public dim param_wa as string(32)
+public dim param_wd as no_yes
+public dim param_ge as en_param_ge
+public dim param_ga as string(16)
+public dim param_gp as string(16)
+public dim param_si(MAX_NUM_SERIAL_PORTS) as byte
+
+#if WLN_AVAILABLE
+	public dim param_ws as pl_wln_security_modes
+#endif
+
+'====================================================================
+sub ethernet_link_state_change(new_state as pl_net_linkstate)
+	if new_state=PL_NET_LINKSTAT_NOLINK then
+		'Ethernet is gone
+		#if DEV_DEBUG_PRINT
+			dev_debugprint("Ethernet FAILED")
+		#endif
+		interface_ready(PL_SOCK_INTERFACE_NET)=NO
+
+		'See if we can replace it with something...
+		#if WLN_AVAILABLE
+			if param_we<>WE_DISABLED then
+				'Try to replace with Wi-Fi
+				if param_we=WE_ENABLED_ONDEMAND and wln_already_started=NO then
+					#if DEV_DEBUG_PRINT
+						dev_debugprint("Start Wi-Fi")
+					#endif
+					num_wln_failures=0
+					if wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC)<>WLN_STATUS_OK then
+						#if DEV_DEBUG_PRINT
+							dev_debugprint("Wi-Fi MALFUNCTIONED (could not start)")
+						#endif
+						wln_error=YES
+					else
+						wln_error=NO
+						wln_already_started=YES
+					end if
+				end if
+				
+				if interface_ready(PL_SOCK_INTERFACE_WLN)=YES then
+					change_current_interface(PL_SOCK_INTERFACE_WLN)
+				end if
+				
+				'255 means Wi-Fi already fail and then we should allow GPRS to start (if enabled)
+				if num_wln_failures<>255 and wln_error=NO then
+					exit sub 
+				end if
+			end if
+		#endif
+
+		#if SUPPORTS_GPRS	
+			if param_ge<>GE_DISABLED then
+				'Try to replace with GPRS
+				if param_ge=GE_ENABLED_ONDEMAND and gprs_already_started=NO then
+					#if DEV_DEBUG_PRINT
+						dev_debugprint("Start GPRS")
+					#endif
+					if gprs_start(param_ga,param_gp)<>GPRS_STATUS_OK then
+						#if DEV_DEBUG_PRINT
+							dev_debugprint("GPRS MALFUNCTIONED (could not start)")
+						#endif
+						gprs_error=YES
+					else
+						gprs_error=NO
+						gprs_already_started=YES
+					end if
+				end if
+
+				if interface_ready(PL_SOCK_INTERFACE_PPP)=YES then
+					change_current_interface(PL_SOCK_INTERFACE_PPP)
+				end if
+			end if		
+		#endif
+	else	
+		'Ethernet will be used from now on
+		#if DEV_DEBUG_PRINT
+			dev_debugprint("Ethernet OK")
+		#endif
+		interface_ready(PL_SOCK_INTERFACE_NET)=YES
+
+		#if WLN_AVAILABLE	
+			'Stop Wi-Fi if it is in the on-demand mode 
+			if param_we=WE_ENABLED_ONDEMAND then
+				#if DEV_DEBUG_PRINT
+					dev_debugprint("Stop Wi-Fi")
+				#endif
+				wln_stop()
+				interface_ready(PL_SOCK_INTERFACE_WLN)=NO
+				wln_already_started=NO
+			end if
+		#endif
+
+		#if SUPPORTS_GPRS
+			'Stop GPRS if it is in the on-demand mode
+			if param_ge=GE_ENABLED_ONDEMAND and gprs_already_started=YES then
+				#if DEV_DEBUG_PRINT
+					dev_debugprint("Stop GPRS")
+				#endif
+				gprs_stop()
+				interface_ready(PL_SOCK_INTERFACE_PPP)=NO
+				gprs_already_started=NO
+			end if
+		#endif
+
+		change_current_interface(PL_SOCK_INTERFACE_NET)
+	end if
+end sub
+
+'--------------------------------------------------------------------
+#if WLN_AVAILABLE
+sub callback_wln_ok()
+	
+	#if DEV_DEBUG_PRINT
+		dev_debugprint("Wi-Fi OK")
+	#endif
+	interface_ready(PL_SOCK_INTERFACE_WLN)=YES
+	num_wln_failures=0
+
+	#if SUPPORTS_DISPLAY
+		if current_interface=PL_SOCK_INTERFACE_WLN then
+			lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+		else
+			lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_ALL)
+		end if
+	#endif
+
+	'Should Wi-Fi become our current interface?
+	if interface_ready(PL_SOCK_INTERFACE_NET)=NO then
+		change_current_interface(PL_SOCK_INTERFACE_WLN)
+
+		#if SUPPORTS_GPRS
+			'Stop GPRS if it is in the on-demand mode
+			if param_ge=GE_ENABLED_ONDEMAND and gprs_already_started=YES then
+				#if DEV_DEBUG_PRINT
+					dev_debugprint("Stop GPRS")
+				#endif
+				gprs_stop()
+				interface_ready(PL_SOCK_INTERFACE_PPP)=NO
+				gprs_already_started=NO
+			end if
+		#endif
+	end if
+end sub
+#endif
+
+'--------------------------------------------------------------------
+#if WLN_AVAILABLE
+sub callback_wln_failure(wln_state as en_wln_status_codes)
+
+	wln_recent_status=wln_state
+
+	if num_wln_failures=255 then goto lbl1
+
+	if num_wln_failures<MAX_NUM_WLN_FAILURES then
+		num_wln_failures=num_wln_failures+1
+	else
+		num_wln_failures=255
+		#if DEV_DEBUG_PRINT
+			dev_debugprint("Wi-Fi FAILED")
+		#endif
+		interface_ready(PL_SOCK_INTERFACE_WLN)=NO
+
+		#if SUPPORTS_GPRS	
+			if param_ge<>GE_DISABLED and interface_ready(PL_SOCK_INTERFACE_NET)=NO then
+				'Try to replace with GPRS
+				if param_ge=GE_ENABLED_ONDEMAND and gprs_already_started=NO then
+					#if DEV_DEBUG_PRINT
+						dev_debugprint("Start GPRS")
+					#endif
+					if gprs_start(param_ga,param_gp)<>GPRS_STATUS_OK then
+						#if DEV_DEBUG_PRINT
+							dev_debugprint("GPRS MALFUNCTIONED (could not start)")
+						#endif
+						gprs_error=YES
+					else
+						gprs_error=NO
+						gprs_already_started=YES
+					end if
+				end if
+
+				if interface_ready(PL_SOCK_INTERFACE_PPP)=YES and interface_ready(PL_SOCK_INTERFACE_NET)=NO then
+					change_current_interface(PL_SOCK_INTERFACE_PPP)
+				end if
+			end if		
+		#endif
+	end if
+
+lbl1:
+	#if SUPPORTS_DISPLAY
+		lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_ALL)
+	#endif
+end sub
+#endif
+
+'--------------------------------------------------------------------
+#if WLN_AVAILABLE
+sub callback_wln_mkey_progress_update(progress as byte)
+	#if SUPPORTS_DISPLAY
+		lcd_show_wln_mkey_progress(progress)
+	#endif
+end sub
+#endif
+
+'--------------------------------------------------------------------
+#if WLN_AVAILABLE
+sub callback_wln_pre_buffrq(required_buff_pages as byte)
+end sub
+#endif
+
+'--------------------------------------------------------------------
+#if WLN_AVAILABLE
+sub callback_wln_rescan_result(current_rssi as byte, scan_rssi as byte, different_ap as no_yes)
+end sub
+#endif
+
+'--------------------------------------------------------------------
+sub callback_gprs_ok()
+	#if DEV_DEBUG_PRINT
+		dev_debugprint("GPRS OK")
+	#endif
+	interface_ready(PL_SOCK_INTERFACE_PPP)=YES
+
+	'Should GPRS become our current interface?
+	#if WLN_AVAILABLE
+		if interface_ready(PL_SOCK_INTERFACE_NET)=NO and interface_ready(PL_SOCK_INTERFACE_WLN)=NO then
+			change_current_interface(PL_SOCK_INTERFACE_PPP)
+		end if
+	#else
+		if interface_ready(PL_SOCK_INTERFACE_NET)=NO then
+			change_current_interface(PL_SOCK_INTERFACE_PPP)
+		end if
+	#endif
+end sub
+
+'--------------------------------------------------------------------
+sub callback_gprs_failure()
+	#if DEV_DEBUG_PRINT
+		dev_debugprint("GPRS FAILED")
+	#endif
+end sub
+
+'--------------------------------------------------------------------
+sub callback_gprs_pre_buffrq(required_buff_pages as byte)
+end sub
+
+'--------------------------------------------------------------------
+sub callback_dhcp_ok(renew as no_yes, interface as pl_sock_interfaces, byref ip as string, byref gateway_ip as string, byref netmask as string, lease_time as dword)
+
+	if interface=PL_SOCK_INTERFACE_NET then
+		if renew=YES and net.ip<>ip then
+			'this is a lease renewal and the DHCP server has issues new IP
+			'it is better to reboot than deal with the implications of the changed IP
+			sys.reboot
+		end if
+
+		#if DEV_DEBUG_PRINT
+			dev_debugprint("Ethernet DHCP OK ("+ip+")")
+		#endif
+
+		if net.ip<>ip then
+			sock.inconenabledmaster=NO
+			close_interface_sockets(PL_SOCK_INTERFACE_NET)
+			net.ip=ip
+			if gateway_ip<>"" then net.gatewayip=gateway_ip
+			if netmask<>"" then net.netmask=netmask
+			sock.inconenabledmaster=YES
+
+			if stg_get("IP",0)<>ip then
+				stg_set("IP",0,ip)
+			end if
+			if gateway_ip<>"" and stg_get("GI",0)<>gateway_ip then
+				stg_set("GI",0,gateway_ip)
+			end if
+			if netmask<>"" and stg_get("NM",0)<>netmask then
+				stg_set("NM",0,netmask)
+			end if
+		end if
+
+		ip_configured(PL_SOCK_INTERFACE_NET)=YES
+		dhcp_failed(PL_SOCK_INTERFACE_NET)=NO
+		#if SUPPORTS_DISPLAY
+			lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+		#endif
+	end if
+
+	#if WLN_AVAILABLE	
+		if interface=PL_SOCK_INTERFACE_WLN then
+			if renew=YES and wln.ip<>ip then
+				'this is a lease renewal and the DHCP server has issues new IP
+				'it is better to reboot than deal with the implications of the changed IP
+				sys.reboot
+			end if
+			
+			#if DEV_DEBUG_PRINT
+				dev_debugprint("Wi-Fi DHCP OK ("+ip+")")
+			#endif
+			
+			if wln.ip<>ip then
+				sock.inconenabledmaster=NO
+				close_interface_sockets(PL_SOCK_INTERFACE_WLN)
+				wln.ip=ip
+				if gateway_ip<>"" then wln.gatewayip=gateway_ip
+				if netmask<>"" then wln.netmask=netmask
+				sock.inconenabledmaster=YES
+				
+				if stg_get("WI",0)<>ip then
+					stg_set("WI",0,ip)
+				end if
+				if gateway_ip<>"" and stg_get("WG",0)<>gateway_ip then
+					stg_set("WG",0,gateway_ip)
+				end if
+				if netmask<>"" and stg_get("WN",0)<>netmask then
+					stg_set("WN",0,netmask)
+				end if
+			end if
+		ip_configured(PL_SOCK_INTERFACE_WLN)=YES
+		dhcp_failed(PL_SOCK_INTERFACE_WLN)=NO
+		#if SUPPORTS_DISPLAY
+			if current_interface=PL_SOCK_INTERFACE_WLN then
+				lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+			else
+				lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_ALL)
+			end if
+		#endif
+		end if
+	#endif
+end sub
+
+'--------------------------------------------------------------------
+sub callback_dhcp_failure(interface as pl_sock_interfaces,failure_code as en_dhcp_status_codes)
+
+	sock.inconenabledmaster=NO
+	close_interface_sockets(interface)
+	if interface=PL_SOCK_INTERFACE_NET then
+		#if DEV_DEBUG_PRINT
+			dev_debugprint("Ethernet DHCP FAILED")
+		#endif
+		net.ip=validate_ip(stg_get("IP",0))
+		
+		ip_configured(PL_SOCK_INTERFACE_NET)=YES
+		dhcp_failed(PL_SOCK_INTERFACE_NET)=YES
+		#if SUPPORTS_DISPLAY
+			lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+		#endif
+	else
+		#if WLN_AVAILABLE	
+			#if DEV_DEBUG_PRINT
+				dev_debugprint("Wi-Fi DHCP FAILED")
+			#endif
+			wln.ip=validate_ip(stg_get("WI",0))
+			ip_configured(PL_SOCK_INTERFACE_WLN)=YES
+			dhcp_failed(PL_SOCK_INTERFACE_WLN)=YES
+			#if SUPPORTS_DISPLAY
+				lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+			#endif
+		#endif
+	end if
+	sock.inconenabledmaster=YES
+end sub
+
+'--------------------------------------------------------------------
+sub callback_dhcp_pre_clear_ip(interface as pl_sock_interfaces)
+	ip_configured(interface)=NO
+	close_interface_sockets(interface)
+end sub
+
+'--------------------------------------------------------------------
+sub callback_dhcp_pre_buffrq(required_buff_pages as byte)
+end sub
+
+'--------------------------------------------------------------------
+sub callback_dhcp_buff_released()
+end sub
+
+'--------------------------------------------------------------------
+sub callback_stg_error(byref stg_name_or_num as string,index as byte,status as en_stg_status_codes)
+	error_mode=YES
+	#if SUPPORTS_DISPLAY
+		lcd_display_page(LCD_PAGE_ERROR,LCD_PRINT_MODE_AGGRESSIVE,LCD_PRINT_ELEMENT_ALL)
+	#endif
+end sub
+
+'--------------------------------------------------------------------
+sub callback_stg_pre_get(byref stg_name_or_num as string,index as byte,byref stg_value as string)
+end sub
+
+'--------------------------------------------------------------------
+sub callback_stg_post_set(byref stg_name_or_num as string, index as byte,byref stg_value as string)
+end sub
+
+'--------------------------------------------------------------------
+sub close_interface_sockets(interface as pl_sock_interfaces)
+	dim f,sock_num_bup as byte
+	dim i as word
+	
+	sock_num_bup=sock.num
+	
+	for f=0 to sock.numofsock-1
+		sock.num=f
+		if sock.currentinterface=interface and sock.statesimple<>PL_SSTS_CLOSED then
+			sock.discard
+		end if
+	next f
+
+	i=sys.timercount
+
+wait_close_interface_sockets:
+	for f=0 to sock.numofsock-1
+		sock.num=f
+		if sock.currentinterface=interface and sock.statesimple<>PL_SSTS_CLOSED and sys.timercount-i<3 and sys.timercount>=i then
+			goto wait_close_interface_sockets
+		end if
+	next f
+
+	sock.num=sock_num_bup
+end sub
+
+'--------------------------------------------------------------------
+sub change_current_interface(new_interface as pl_sock_interfaces)
+
+	if current_interface<>new_interface then
+		'this will allow immediate logins on the new current interface
+		if login_mode=CMD_MODE_INBAND or login_mode=CMD_MODE_HTTP or login_mode=CMD_MODE_TELNET or login_mode=CMD_MODE_UDP then
+			login_mode=CMD_MODE_NONE
+		end if
+
+		sock.inconenabledmaster=NO
+		close_interface_sockets(current_interface)
+
+		current_interface=new_interface
+		'receive UDP commands on the new current interface only
+		sock.num=sock_udp
+		select case current_interface
+		case PL_SOCK_INTERFACE_NET: sock.allowedinterfaces="NET"
+		#if WLN_AVAILABLE	
+			case PL_SOCK_INTERFACE_WLN: sock.allowedinterfaces="WLN"
+		#endif	
+		case PL_SOCK_INTERFACE_PPP: sock.allowedinterfaces="PPP"
+		end select
+		sock.inconenabledmaster=YES
+	
+		#if DEV_DEBUG_PRINT
+			select case current_interface
+			case PL_SOCK_INTERFACE_NET: dev_debugprint("Set current interface to Ethernet") 
+		#if WLN_AVAILABLE	
+			case PL_SOCK_INTERFACE_WLN: dev_debugprint("Set current interface to Wi-Fi")
+		#endif	
+			case PL_SOCK_INTERFACE_PPP: dev_debugprint("Set current interface to GPRS")
+			end select
+		#endif
+
+		#if SUPPORTS_DISPLAY
+			select case new_interface
+			case PL_SOCK_INTERFACE_NET:
+				lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+				lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_ALL)
+			
+			case PL_SOCK_INTERFACE_WLN:
+				lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+				lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_ALL)
+			
+			case PL_SOCK_INTERFACE_PPP:	'lcd_display_page(LCD_PAGE_GPRS,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+			
+			end select
+		#endif
+	end if
+end sub
+
+'--------------------------------------------------------------------
+public sub enable_comm_channels(pages_to_distribute as byte)
+	dim f,x,num_ports_in_use as byte
+
+	num_ports_in_use=0
+	for f=0 to NUM_SERIAL_PORTS-1
+		if port_in_use(f)=YES then
+			num_ports_in_use=num_ports_in_use+1
+		end if
+	next f
+
+	x=pages_to_distribute/num_ports_in_use
+	for f=0 to NUM_SERIAL_PORTS-1
+		if port_in_use(f)=YES then
+			set_comm_channel_buffers(f,x,check_if_serial_channel_is_in_login_state(f))
+			if check_if_serial_channel_is_in_login_state(f)=NO then
+				set_ser_channel_for_normal_mode(f)
+			else
+				set_ser_channel_for_prog_mode(f)
+			end if
+		end if
+	next f	
+end sub
+
+'--------------------------------------------------------------------
+public sub enter_ser_prog_mode(channel_num as byte)
+	ser.num=channel_num
+	login_mode=CMD_MODE_SERIAL
+	add_serial_channel_to_login_data(channel_num)
+	#if PER_CHANNEL_STATUS_INDICATION=0
+		pat.channel=0
+	#else
+		pat.channel=channel_num+1
+	#endif
+	pat.play(PAT_GAP,PL_PAT_CANINT)
+	set_ser_channel_for_prog_mode(channel_num) 'this causes temporary ser port closing
+	#if SUPPORTS_DISPLAY
+		lcd_display_page(LCD_PAGE_SER_PROG_MODE,LCD_PRINT_MODE_AGGRESSIVE,LCD_PRINT_ELEMENT_ALL)
+	#endif
+end sub
+
+'--------------------------------------------------------------------
+public sub exit_ser_prog_mode(channel_num as byte)
+	ser.num=channel_num
+	
+	remove_serial_channel_from_login_data(channel_num)
+	if login_data="" then login_mode=CMD_MODE_NONE
+	#if PER_CHANNEL_STATUS_INDICATION=0
+		pat.channel=0
+	#else
+		pat.channel=channel_num+1
+	#endif
+	pat.play(PAT_GAP,PL_PAT_CANINT)
+	set_ser_channel_for_normal_mode(channel_num) 'this causes temporary ser port closing
+	#if SUPPORTS_DISPLAY
+		lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_AGGRESSIVE,LCD_PRINT_ELEMENT_ALL)
+	#endif
+	#if BEEP_AVAILABLE
+		beep.play(BEEP_SHORT,PL_BEEP_CANINT)
+	#endif
+end sub
+
+'--------------------------------------------------------------------
+public sub set_ser_channel_for_prog_mode(channel_num as byte)
+
+	dim x as byte
+	dim ser_enabled_prev as no_yes
+
+	ser.num=channel_num
+	sock.num=sock_comm(channel_num)
+	
+	ser_enabled_prev=ser.enabled
+	ser.enabled=NO
+	ser.interface=PL_SER_SI_HALFDUPLEX 'will work for RS232 without flow control, as well as RS485
+	ser.flowcontrol=DISABLED
+	baudrate_set(BR_38400)
+	ser.parity=PL_SER_PR_NONE
+	ser.bits=PL_SER_BB_8
+	ser.interchardelay=0
+	ser.esctype=PL_SER_ET_DISABLED
+
+	x=sys.freebuffpages
+	set_comm_channel_buffers(channel_num,0,NO)
+	x=sys.freebuffpages-x 'this is how many buffers were allocated
+	set_comm_channel_buffers(channel_num,x,YES) 'now allocate the same num of buffers, but for prog mode
+	sock.sinkdata=YES
+	ser.redir(0)
+	
+	ser.enabled=ser_enabled_prev
+	decide_on_ser_enabled(channel_num)
+end sub
+
+'--------------------------------------------------------------------
+public sub set_ser_channel_for_normal_mode(channel_num as byte)
+
+	dim x as byte
+	dim ser_enabled_prev as no_yes
+
+	ser.num=channel_num
+	sock.num=sock_comm(channel_num)
+		
+	ser_enabled_prev=ser.enabled
+	ser.enabled=NO
+	
+	select case param_si(channel_num)
+	case 0:
+		ser.interface=PL_SER_SI_FULLDUPLEX
+		#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_4C
+			if channel_num=0 then
+				io.lineset(SER0_HDFD,HIGH)
+				io.lineset(SER0_RSMD,LOW)
+			end if
+		#endif
+		
+		#if SUPPORTS_422_485_4 and DEVICE_PORT_SCHEME=PORT_SCHEME_4P
+			select case channel_num
+			case 0:
+				io.lineset(SER0_HDFD,HIGH)
+				io.lineset(SER0_RSMD,LOW)
+			case 1:
+				io.lineset(SER1_HDFD,HIGH)
+				io.lineset(SER1_RSMD,LOW)
+			case 2:
+				io.lineset(SER2_HDFD,HIGH)
+				io.lineset(SER2_RSMD,LOW)
+			case else:
+				io.lineset(SER3_HDFD,HIGH)
+				io.lineset(SER3_RSMD,LOW)
+			end select
+		#endif
+	case 1:
+		ser.interface=PL_SER_SI_HALFDUPLEX
+		#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_4C
+			if channel_num=0 then
+				io.lineset(SER0_HDFD,LOW)
+				io.lineset(SER0_RSMD,HIGH)
+			end if
+		#endif
+		
+		#if SUPPORTS_422_485_4 and DEVICE_PORT_SCHEME=PORT_SCHEME_4P
+			select case channel_num
+			case 0:
+				io.lineset(SER0_HDFD,LOW)
+				io.lineset(SER0_RSMD,HIGH)
+			case 1:
+				io.lineset(SER1_HDFD,LOW)
+				io.lineset(SER1_RSMD,HIGH)
+			case 2:
+				io.lineset(SER2_HDFD,LOW)
+				io.lineset(SER2_RSMD,HIGH)
+			case else:
+				io.lineset(SER3_HDFD,LOW)
+				io.lineset(SER3_RSMD,HIGH)
+			end select
+		#endif
+	case else:
+		ser.interface=PL_SER_SI_FULLDUPLEX
+		#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_4C
+			if channel_num=0 then
+				io.lineset(SER0_HDFD,HIGH)
+				io.lineset(SER0_RSMD,HIGH)
+			end if
+		#endif
+
+		#if SUPPORTS_422_485_4 and DEVICE_PORT_SCHEME=PORT_SCHEME_4P
+			select case channel_num
+			case 0:
+				io.lineset(SER0_HDFD,HIGH)
+				io.lineset(SER0_RSMD,HIGH)
+			case 1:
+				io.lineset(SER1_HDFD,HIGH)
+				io.lineset(SER1_RSMD,HIGH)
+			case 2:
+				io.lineset(SER2_HDFD,HIGH)
+				io.lineset(SER2_RSMD,HIGH)
+			case else:
+				io.lineset(SER3_HDFD,HIGH)
+				io.lineset(SER3_RSMD,HIGH)
+			end select
+		#endif
+	end select
+
+	ser.flowcontrol=val(stg_get("FC",channel_num))
+	baudrate_set(val(stg_get("BR",channel_num)))
+	ser.parity=val(stg_get("PR",channel_num))
+	ser.bits=val(stg_get("BB",channel_num))
+	ser.interchardelay=val(stg_get("MD",channel_num))
+	ser.esctype=val(stg_get("SE",channel_num))
+	ser.escchar=val(stg_get("EC",channel_num))
+	
+	x=sys.freebuffpages
+	set_comm_channel_buffers(channel_num,0,NO)
+	x=sys.freebuffpages-x 'this is how many buffers were allocated
+	set_comm_channel_buffers(channel_num,x,NO) 'now allocate the same num of buffers, but for normal
+	ser.redir(PL_REDIR_SOCK0+sock.num)
+	sock.redir(PL_REDIR_SER+ser.num)
+	sock.sinkdata=NO
+
+	ser.enabled=ser_enabled_prev
+	decide_on_ser_enabled(channel_num)
+end sub
+
+'--------------------------------------------------------------------
+public sub set_comm_channel_buffers(channel_num as byte, num_buffers as byte, ser_port_in_prog_mode as no_yes)
+
+	dim x,y as byte
+	dim use_inband as no_yes
+
+	sock.num=sock_comm(channel_num)
+	ser.num=channel_num
+
+	'first deallocate all buffers
+	sock.rxbuffrq(0)
+	sock.txbuffrq(0)
+	sock.tx2buffrq(0)
+	sock.cmdbuffrq(0)
+	sock.rplbuffrq(0)
+	ser.rxbuffrq(0)
+	ser.txbuffrq(0)
+	sys.buffalloc
+
+	'do we actually need to allocate anything back?
+	if num_buffers=0 then
+		exit sub
+	end if
+
+	'decide if we will be using inband
+	if sock.protocol=PL_SOCK_PROTOCOL_TCP and sock.inbandcommands=YES then
+		use_inband=YES
+	else
+		use_inband=NO
+	end if
+
+	if use_inband=NO then
+		if ser_port_in_prog_mode=NO then
+			'RX buffers are not necessary in the normal mode because we use buffer shorting
+			x=num_buffers/2
+			y=num_buffers-x
+			sock.txbuffrq(x)
+			ser.txbuffrq(y)
+		else
+			'serial programming mode -- no buffer shorting and all buffers are needed
+			x=num_buffers/4
+			y=num_buffers-x*3
+			sock.rxbuffrq(x)
+			sock.txbuffrq(x)
+			ser.rxbuffrq(x)
+			ser.txbuffrq(y)
+		end if
+	else
+		'the rest of our buffers gets equal number of pages, RX for ser gets more if we can't divide evenly
+		if ser_port_in_prog_mode=NO then
+			sock.cmdbuffrq(1)
+			sock.rplbuffrq(1)
+			num_buffers=num_buffers-2
+			x=num_buffers/3
+			y=num_buffers-x*2
+			sock.txbuffrq(x)
+			sock.tx2buffrq(x)
+			ser.txbuffrq(y)
+		else
+			x=num_buffers/4
+			y=num_buffers-x*3
+			sock.rxbuffrq(x)
+			sock.txbuffrq(x)
+			ser.rxbuffrq(x)
+			ser.txbuffrq(y)
+		end if
+	end if
+	
+	sys.buffalloc
+end sub
+
+'--------------------------------------------------------------------
+public sub decide_on_ser_enabled(channel_num as byte)
+	dim new_state as no_yes
+
+	ser.num=channel_num
+	sock.num=sock_comm(channel_num)
+
+	if port_in_use(channel_num)=NO then
+			new_state=NO 'port is not in use
+	else
+		if login_mode=CMD_MODE_SERIAL then
+			new_state=YES 'port is always opened in the serial programming mode
+		else
+			if sock.statesimple=PL_SSTS_EST then
+				new_state=YES 'port is always opened when connection is establised
+			else
+				if param_rm(channel_num)=RM_SERVER then
+					new_state=NO 'server rounting mode --> port is closed
+				else
+					'server/client, client rounting modes --> need to see connection mode
+					if param_cm(channel_num)=CM_DATA_COMMAND then
+						new_state=YES 'we will be waiting for the data to come into the serial port
+					else
+						new_state=NO
+					end if
+				end if
+			end if
+		end if
+	end if
+
+	'change serial port state?
+	if new_state=NO then
+		'we are closing the port
+		if port_in_use(channel_num)=YES and (ser.esctype=PL_SER_ET_TYPE1 or ser.esctype=PL_SER_ET_TYPE2) then
+			'we must keep the port running but disable RXing
+			if ser.enabled=NO then ser.enabled=YES
+			if ser.sinkdata=NO then ser.sinkdata=YES
+		else
+			'we can disable the port
+			if ser.enabled=YES then ser.enabled=NO
+		end if
+	else
+		if port_in_use(channel_num)=YES then
+			if ser.enabled=NO then ser.enabled=YES
+			if ser.sinkdata=YES then ser.sinkdata=NO
+		end if
+	end if	
+end sub
+
+'--------------------------------------------------------------------
+public sub set_sock_connmode(channel_num as byte)
+'sets sock.inconmode and sock.reconmode from param_rm, param_sf, sock.protocol
+	
+	sock.num=sock_comm(channel_num)
+	if param_rm(channel_num)=RM_CLIENT then
+		sock.inconmode=PL_SOCK_INCONMODE_NONE
+	else
+		if param_sf(channel_num)=NO then
+			sock.inconmode=PL_SOCK_INCONMODE_ANY_IP_ANY_PORT
+			if sock.protocol=PL_SOCK_PROTOCOL_UDP then
+				if param_rm(channel_num)=RM_SERVER then
+					sock.reconmode=PL_SOCK_RECONMODE_3
+				else
+					sock.reconmode=PL_SOCK_RECONMODE_1
+				end if
+			else
+				sock.reconmode=PL_SOCK_RECONMODE_2
+			end if
+		else
+			sock.inconmode=PL_SOCK_INCONMODE_SPECIFIC_IP_ANY_PORT
+
+			if sock.protocol=PL_SOCK_PROTOCOL_UDP then
+				if param_rm(channel_num)=RM_SERVER then
+					sock.reconmode=PL_SOCK_RECONMODE_2
+				else
+					sock.reconmode=PL_SOCK_RECONMODE_0
+				end if
+			else
+				sock.reconmode=PL_SOCK_RECONMODE_2
+			end if
+		end if
+	end if
+end sub
+
+'--------------------------------------------------------------------
+public sub decide_on_sock_connect(channel_num as byte)
+
+	ser.num=channel_num
+	sock.num=sock_comm(channel_num)
+
+	if port_in_use(channel_num)=YES then
+		if param_rm(channel_num)=RM_SERVER_CLIENT or param_rm(channel_num)=RM_CLIENT then
+			if param_cm(channel_num)=CM_IMMEDIATELY or sock.txlen>0 then
+				if interface_ready(current_interface)<>NO then
+					select case current_interface
+					case PL_SOCK_INTERFACE_NET:
+						if ip_configured(PL_SOCK_INTERFACE_NET)=NO then
+							exit sub
+						end if
+					
+				#if WLN_AVAILABLE	
+					case PL_SOCK_INTERFACE_WLN:
+						if ip_configured(PL_SOCK_INTERFACE_WLN)=NO then
+							exit sub
+						end if
+				#endif	
+					
+					case PL_SOCK_INTERFACE_PPP:
+					end select
+					
+					sock.targetinterface=current_interface
+					sock.connect
+				end if
+			end if
+		end if
+	end if
+end sub
+
+'--------------------------------------------------------------------
+public function login(new_login as cmd_modes, cmd_data as string(32), sock as byte) as ok_ng
+'looks at the current login attempt, checks it against current situation, makes decision to allow/reject
+
+	if new_login>login_mode then goto lb1 'new login attempt has higher priority -- accept it unconditionally
+
+	if new_login=login_mode then
+		'same level -- we only accept relogin from the same source
+		if login_data=cmd_data then
+lb1:		'restart timeout timer
+			select case new_login
+			case CMD_MODE_INBAND:
+				login_tout=LOGIN_TOUT_CONST_INBAND
+			case CMD_MODE_HTTP:
+				login_tout=LOGIN_TOUT_CONST_HTTP
+			case CMD_MODE_TELNET:
+				login_tout=LOGIN_TOUT_CONST_TELNET
+			case CMD_MODE_UDP:
+				login_tout=LOGIN_TOUT_CONST_UDP
+			case CMD_MODE_SERIAL:
+				login_tout=LOGIN_TOUT_CONST_SERIAL
+			end select
+			login_mode=new_login
+			login_data=cmd_data
+			login_sock=sock
+			login=OK
+			exit function
+		end if
+	end if
+
+	'here when new login attempt can't be accepted
+	login=NG
+end function
+
+'--------------------------------------------------------------------
+public function compare_logins(new_login as cmd_modes, cmd_data as string(32), sock as byte) as login_comparison_codes
+'compares "proposed" new_login attempt against current, reports things
+'does not perform actual login
+
+	if login_mode=CMD_MODE_NONE then
+		compare_logins=LC_WILL_ACCEPT
+	else
+		if login_mode>new_login then 
+			compare_logins=LC_WILL_REJECT_HIGHER_IN_PROGRESS
+			exit function
+		end if
+
+		if login_mode<new_login then
+			compare_logins=LC_WILL_ACCEPT_LOWER_IN_PROGRESS
+			exit function
+		end if
+		
+		'here where same priority level session is already in progress
+		if login_data=cmd_data then
+			compare_logins=LC_WILL_ACCEPT_REPEATED_LOGIN
+		else
+			compare_logins=LC_WILL_REJECT_SAME_IN_PROGRESS
+		end if
+	end if
+end function
+
+'--------------------------------------------------------------------
+public sub add_serial_channel_to_login_data(channel_num as byte)
+
+	if instr(1,login_data,str(channel_num),1)=0 then
+		login_data=login_data+str(channel_num)
+	end if
+end sub
+
+'--------------------------------------------------------------------
+public sub remove_serial_channel_from_login_data(channel_num as byte)
+	dim x as byte
+
+	x=instr(1,login_data,str(channel_num),1)
+	if x<>0 then
+		login_data=left(login_data,x-1)+right(login_data,len(login_data)-x)
+	end if
+	if login_data="S" then login_data=""
+end sub
+
+'--------------------------------------------------------------------
+public function check_if_serial_channel_is_in_login_state(channel_num as byte) as no_yes
+	if login_mode=CMD_MODE_SERIAL and instr(1,login_data,str(channel_num),1)<>0 then
+		check_if_serial_channel_is_in_login_state=YES
+	else
+		check_if_serial_channel_is_in_login_state=NO
+	end if
+end function
+
+'--------------------------------------------------------------------
+public sub logout()
+	login_tout=0
+	login_mode=CMD_MODE_NONE
+	login_data=""
+end sub
+
+'--------------------------------------------------------------------
+public sub reset_login_timeout
+	select case login_mode
+	case CMD_MODE_INBAND:
+		login_tout=LOGIN_TOUT_CONST_INBAND
+	case CMD_MODE_HTTP:
+		login_tout=LOGIN_TOUT_CONST_HTTP
+	case CMD_MODE_TELNET:
+		login_tout=LOGIN_TOUT_CONST_TELNET
+	case CMD_MODE_UDP:
+		login_tout=LOGIN_TOUT_CONST_UDP
+	case CMD_MODE_SERIAL:
+		login_tout=LOGIN_TOUT_CONST_SERIAL
+	end select
+end sub
+
+'--------------------------------------------------------------------
+public function init_settings_of_one_channel(channel_num as byte) as ok_ng
+
+	dim f,num_members as byte
+
+	f=0
+
+next_setting:	
+	select case stg_get_num_members(str(f),num_members)
+	case EN_STG_STATUS_UNKNOWN: 'we are done
+		init_settings_of_one_channel=OK
+		exit function
+
+	case EN_STG_STATUS_OK:
+		'all good
+	
+	case else: 'some problem
+		init_settings_of_one_channel=NG
+		exit function
+	end select
+	
+	if num_members=4 then
+		if stg_restore_member(str(f),channel_num)<>EN_STG_STATUS_OK then
+			init_settings_of_one_channel=NG 'some problem
+			exit function
+		end if
+	end if
+	
+	f=f+1
+	goto next_setting
+end function
+
+'--------------------------------------------------------------------
+#if SIGNAL_STRENGTH_INDICATION=1
+sub signal_strength_indication_init()
+	dim f as byte
+	
+	'make sure there is no reset
+	io.num=PL_IO_NUM_46
+	io.enabled=YES
+	io.state=HIGH
+
+	'we will be turning LEDs off
+	io.num=PL_IO_NUM_48
+	io.enabled=YES
+	io.state=HIGH
+	'make 5 clocks
+	io.num=PL_IO_NUM_47
+	io.enabled=YES
+	for f=0 to 4
+		io.state=LOW
+		io.state=HIGH
+	next f
+end sub
+#endif	
+
+#if SIGNAL_STRENGTH_INDICATION=2
+sub signal_strength_indication_init()
+	
+	io.num=PL_IO_NUM_19_SB1
+	io.enabled=YES
+	io.state=HIGH
+
+	io.num=PL_IO_NUM_20_SB2
+	io.enabled=YES
+	io.state=HIGH
+
+	io.num=PL_IO_NUM_21_SB3
+	io.enabled=YES
+	io.state=HIGH
+
+	io.num=PL_IO_NUM_22_SB4
+	io.enabled=YES
+	io.state=HIGH
+
+	io.num=PL_IO_NUM_23_SB5
+	io.enabled=YES
+	io.state=HIGH
+end sub
+#endif	
+
+'--------------------------------------------------------------------
+#if SIGNAL_STRENGTH_INDICATION=1
+sub signal_strength_set(strength as byte)
+'Bits 0-5 of strength argument correspond to LEDs	
+	
+	dim f,x as byte
+	dim s as string(8)
+	
+	s=mid(bin(strength),3,8)
+	s=strgen(8-len(s),"0")+s	
+	
+	'make 5 clocks
+	io.num=PL_IO_NUM_47
+	for f=0 to 4
+		x=1-val(mid(s,f+4,1))
+		io.lineset(PL_IO_NUM_48,x)
+		io.state=LOW
+		io.state=HIGH
+	next f
+end sub
+#endif	
+
+#if SIGNAL_STRENGTH_INDICATION=2
+sub signal_strength_set(strength as byte)
+'Bits 0-5 of strength argument correspond to LEDs	
+	
+	if strength and &b00001 then
+		io.lineset(PL_IO_NUM_19_SB1,LOW)
+	else
+		io.lineset(PL_IO_NUM_19_SB1,HIGH)
+	end if
+
+	if strength and &b00010 then
+		io.lineset(PL_IO_NUM_20_SB2,LOW)
+	else
+		io.lineset(PL_IO_NUM_20_SB2,HIGH)
+	end if
+
+	if strength and &b00100 then
+		io.lineset(PL_IO_NUM_21_SB3,LOW)
+	else
+		io.lineset(PL_IO_NUM_21_SB3,HIGH)
+	end if
+
+	if strength and &b01000 then
+		io.lineset(PL_IO_NUM_22_SB4,LOW)
+	else
+		io.lineset(PL_IO_NUM_22_SB4,HIGH)
+	end if
+
+	if strength and &b10000 then
+		io.lineset(PL_IO_NUM_23_SB5,LOW)
+	else
+		io.lineset(PL_IO_NUM_23_SB5,HIGH)
+	end if
+end sub
+#endif	
+
+'--------------------------------------------------------------------
+public function proc_device_op(s as string(1)) as string(1)
+	select case s
+	case "I":
+		select case stg_restore_multiple(EN_STG_INIT_MODE_NORMAL)
+		case EN_STG_STATUS_OK:
+			
+		case else:
+			sys.halt
+		end select
+	end select
+goto reply_null
+
+reply_rejected:
+	proc_device_op="R"
+	goto finish
+reply_err:
+	proc_device_op="C"
+	goto finish
+reply_denied:
+	proc_device_op="D"
+	goto finish
+reply_failed:
+	proc_device_op="F"
+	goto finish
+reply_ok:
+	proc_device_op="A"
+	goto finish	
+finish:
+reply_null:
+
+end function
+
+'--------------------------------------------------------------------
+public sub device_setting_set(sname as string(STG_MAX_SETTING_NAME_LEN), index as byte, s as string)
+	'********** ADDITIONAL CODE MAY BE NEEDED **********
+end sub
+
+'--------------------------------------------------------------------
+public function device_setting_check(byref setting_name as string,byref setting_val as string) as ok_ng
+	'********** ADDITIONAL CODE MAY BE NEEDED **********
+	device_setting_check = OK
+end function 
+
+'--------------------------------------------------------------------
+public function device_spec_arg_sg(byref setting_name as string, byref setting_val as string, byref stg_num as byte, rw as en_stg_rdwr) as en_stg_status_codes
+	'********** ADDITIONAL CODE MAY BE NEEDED **********
+	device_spec_arg_sg = EN_STG_STATUS_OK
+end function
+
+'--------------------------------------------------------------------
+function baudrate_set(br_mode as br_modes) as ok_ng
+'Set the UART according to the supplied baudrate "number"
+
+select case br_mode
+	case BR_1200:
+		ser.baudrate=ser.div9600*8
+	case BR_2400:
+		ser.baudrate=ser.div9600*4
+	case BR_4800:
+		ser.baudrate=ser.div9600*2
+	case BR_9600:
+		ser.baudrate=ser.div9600
+	case BR_19200:
+		ser.baudrate=ser.div9600/2
+	case BR_38400:
+		ser.baudrate=ser.div9600/4
+	case BR_57600:
+		ser.baudrate=ser.div9600/6
+	case BR_115200:
+		ser.baudrate=ser.div9600/12
+	case BR_150:
+		ser.baudrate=ser.div9600*64
+	case BR_300:
+		ser.baudrate=ser.div9600*32
+	case BR_600:
+		ser.baudrate=ser.div9600*16
+	case BR_28800:
+		ser.baudrate=ser.div9600/3
+	case BR_230400:
+		ser.baudrate=ser.div9600/24
+	case BR_460800:
+		ser.baudrate=ser.div9600/48
+	case else
+		baudrate_set=NG
+		exit function
+	end select
+
+	baudrate_set=OK
+end function
+
+'--------------------------------------------------------------------
+function baudrate_get() as br_modes
+	dim i as word
+	
+	if ser.baudrate<=ser.div9600 then
+		i=ser.div9600/ser.baudrate
+		select case i
+		case 1
+			baudrate_get=BR_9600
+		case 2
+			baudrate_get=BR_19200
+		case 4
+			baudrate_get=BR_38400
+		case 6
+			baudrate_get=BR_57600
+		case 12
+			baudrate_get=BR_115200
+		case 24
+			baudrate_get=BR_230400
+		case else
+			baudrate_get=BR_460800
+		end select
+	else
+		i=ser.baudrate/ser.div9600
+		select case i
+		case 2
+			baudrate_get=BR_4800
+		case 4
+			baudrate_get=BR_2400
+		case 8
+			baudrate_get=BR_1200
+		case 64
+			baudrate_get=BR_150
+		case 32
+			baudrate_get=BR_300
+		case 16
+			baudrate_get=BR_600
+		case else
+			baudrate_get=BR_28800
+		end select
+	end if
+	
+end function
+
+'--------------------------------------------------------------------
+function validate_ip(byref ip as string) as string
+	dim x as byte
+	
+	validate_ip=ddval(ip)
+	
+	'first number can't be 0 or >223
+	x=asc(left(validate_ip,1))
+	if x=0 or x>223 then
+		insert(validate_ip,1,chr(1))
+	end if
+	
+	'last number can't be 0 or 255
+	x=asc(right(validate_ip,1))
+	if x=0 or x=255 then
+		insert(validate_ip,4,chr(1))
+	end if
+
+	validate_ip=ddstr(validate_ip)
+end function
+
+'--------------------------------------------------------------------
+function get_x_flags_network(interface as pl_sock_interfaces) as string(10)
+	dim sock_num_bup as byte
+	dim f as byte
+
+	get_x_flags_network="/N****/**"
+	
+	select case login_mode
+	case CMD_MODE_SERIAL:
+		insert(get_x_flags_network,3,"S")
+	case CMD_MODE_UDP:
+		insert(get_x_flags_network,3,"U")
+	case CMD_MODE_INBAND, CMD_MODE_TELNET, CMD_MODE_HTTP:
+		insert(get_x_flags_network,3,"T")
+	end select
+	
+	if error_mode=YES then insert(get_x_flags_network,4,"E")
+
+	if interface=PL_SOCK_INTERFACE_NET then
+		if param_dh=NO then
+			insert(get_x_flags_network,5,"M")
+		else
+			if ip_configured(PL_SOCK_INTERFACE_NET)=NO then
+				insert(get_x_flags_network,5,"*")
+			else
+				insert(get_x_flags_network,5,"I")
+			end if
+		end if
+	else
+		#if WLN_AVAILABLE	
+			if param_wd=NO then
+				insert(get_x_flags_network,5,"M")
+			else
+				if ip_configured(PL_SOCK_INTERFACE_WLN)=NO then
+					insert(get_x_flags_network,5,"*")
+				else
+					insert(get_x_flags_network,5,"I")
+				end if
+			end if
+		#endif
+	end if
+
+	sock_num_bup=sock.num
+	for f=0 to NUM_SERIAL_PORTS-1
+		sock.num=sock_comm(f)
+		if sock.statesimple=PL_SSTS_EST then
+			insert(get_x_flags_network,6,"C")
+			goto lb1
+		end if
+	next f
+
+lb1:	
+	sock.num=sock_num_bup
+	
+	for f=0 to NUM_SERIAL_PORTS-1
+		if overrun_es(f)=YES then
+			insert(get_x_flags_network,8,"E")
+			goto lb2
+		end if	
+	next f
+lb2:	
+	for f=0 to NUM_SERIAL_PORTS-1
+		if overrun_se(f)=YES then
+			insert(get_x_flags_network,9,"S")
+			goto lb3
+		end if	
+	next f
+lb3:
+
+end function
+
+'--------------------------------------------------------------------
+function get_x_flags_serial(channel_num as byte) as string(10)
+	get_x_flags_serial="/N****/**"
+	
+	select case login_mode
+	case CMD_MODE_SERIAL:
+		insert(get_x_flags_serial,3,"S")
+	case CMD_MODE_UDP:
+		insert(get_x_flags_serial,3,"U")
+	case CMD_MODE_INBAND, CMD_MODE_TELNET, CMD_MODE_HTTP:
+		insert(get_x_flags_serial,3,"T")
+	end select
+	
+	if error_mode=YES then insert(get_x_flags_serial,4,"E")
+	
+	select case current_interface
+	case PL_SOCK_INTERFACE_NET:
+		if param_dh=NO then
+			insert(get_x_flags_serial,5,"M")
+		else
+			if ip_configured(PL_SOCK_INTERFACE_NET)=NO then
+				insert(get_x_flags_serial,5,"*")
+			else
+				insert(get_x_flags_serial,5,"I")
+			end if
+		end if
+
+#if WLN_AVAILABLE
+	case PL_SOCK_INTERFACE_WLN:
+		if param_wd=NO then
+			insert(get_x_flags_serial,5,"M")
+		else
+			if ip_configured(PL_SOCK_INTERFACE_WLN)=NO then
+				insert(get_x_flags_serial,5,"*")
+			else
+				insert(get_x_flags_serial,5,"I")
+			end if
+		end if
+#endif
+
+	case else:
+		if ip_configured(PL_SOCK_INTERFACE_PPP)=NO then
+			insert(get_x_flags_serial,5,"*")
+		else
+			insert(get_x_flags_serial,5,"I")
+		end if
+
+	end select
+	
+	sock.num=sock_comm(channel_num)
+	select case sock.statesimple
+
+
+	case PL_SSTS_CLOSED:
+		select case sock.state
+		case PL_SST_CL_PRESET_POPENING,
+			 PL_SST_CL_PRESET_AOPENING,
+			 PL_SST_CL_PRESET_EST,
+			 PL_SST_CL_PRESET_PCLOSING,
+			 PL_SST_CL_PRESET_ACLOSING,
+			 PL_SST_CL_PRESET_STRANGE:
+			'connection was reset by the other end
+			insert(get_x_flags_serial,6,"R")
+		case else:
+			'idle (and not because it was reset by other end)
+			insert(get_x_flags_serial,6,"*")
+		end select
+
+	case PL_SSTS_ARP:
+		insert(get_x_flags_serial,6,"A")
+	
+	case PL_SSTS_PO, PL_SSTS_AO:
+		insert(get_x_flags_serial,6,"O")
+	
+	case PL_SSTS_EST,PL_SSTS_PC, PL_SSTS_AC:
+		if sock.protocol=PL_SOCK_PROTOCOL_UDP then
+			insert(get_x_flags_serial,6,"U")
+		else
+			insert(get_x_flags_serial,6,"C")
+		end if
+	end select
+
+	if overrun_es(channel_num)=YES then
+		insert(get_x_flags_serial,8,"E")
+	end if	
+
+	if overrun_se(channel_num)=YES then
+		insert(get_x_flags_serial,9,"S")
+	end if
+
+end function
+
+#if PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+function test_io_pair(line_out as pl_io_num, line_in as pl_io_num) as ok_ng
+'added by Steve
+	dim	f as byte
+	dim out_record,in_record as low_high
+	dim out,in as boolean
+	out_record=io.lineget(line_out)
+	in_record=io.lineget(line_in)
+	
+	io.num=line_out
+	out=io.enabled
+	io.enabled=YES
+
+	io.num=line_in
+	in=io.enabled
+	io.enabled=NO
+
+	for f=1 to 100
+		io.lineset(line_out,LOW)
+		if io.lineget(line_in)<>LOW then
+			test_io_pair=NG
+			goto leave
+		end if
+
+		io.lineset(line_out,HIGH)
+		if io.lineget(line_in)<>HIGH then
+			test_io_pair=NG
+			goto leave
+		end if
+	next f
+
+	test_io_pair=OK
+leave:
+	io.num=line_out
+	io.lineset(line_out,out_record)
+	io.enabled=out
+
+	io.num=line_in
+	io.lineset(line_out,in_record)
+	io.enabled=in
+end function
+#endif
+
+'------------------------------------------------------------------------------
+#if DEV_DEBUG_PRINT
+sub dev_debugprint(byref print_data as string)
+	sys.debugprint(DEV_STAMP+print_data+DEV_CR_LF)
+end sub
+#endif

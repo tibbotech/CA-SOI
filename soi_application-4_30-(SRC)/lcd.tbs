@@ -1,0 +1,483 @@
+include "global.tbh"
+
+const DISPLAY_ON_TIME=60   '2*60*60
+
+declare sub lcd_clear()
+declare sub lcd_print_icon(byref name as string)
+declare sub lcd_print_top_text(byref text as string)
+declare sub lcd_print_bottom_text(byref text as string)
+declare sub lcd_print_ip(byref ip as string)
+declare sub lcd_print_dhcp(interface as pl_sock_interfaces)
+declare sub lcd_print_full_screen(byref text as string)
+
+#if SUPPORTS_DISPLAY
+
+dim lcd_current_page as enum_lcd_pages
+dim lcd_on_ctr as word
+dim user_uses_button as no_yes
+
+sub lcd_init()
+	lcd_on_ctr=DISPLAY_ON_TIME
+	
+	io.num=36
+	io.enabled=YES
+	
+	io.num=35
+	io.enabled=YES
+
+	io.num=34
+	io.enabled=YES
+
+	io.num=33
+	io.enabled=YES
+	io.state=HIGH 'disabled
+
+	io.num=32
+	io.enabled=YES
+	io.state=LOW 'permanently enabled
+
+	lcd.width=96
+	lcd.height=32
+	lcd.iomapping="36,35,34,33,32,0" 'RST,DC,WR,RD,CS,data_bus
+	
+	lcd.enabled=YES
+	
+	'check if the display is installed
+	display_installed=YES
+	lcd.lock
+	lcd.setpixel(1,0,0)
+	if lcd.getpixel(0,0)<>1 then display_installed=NO
+	lcd.setpixel(0,0,0)
+	if lcd.getpixel(0,0)<>0 then display_installed=NO
+	lcd.unlock
+	
+	lcd.forecolor=0
+	lcd.fill(0,0,lcd.width,lcd.height)
+	
+	if display_installed=NO then
+		'the display is not attached!
+		lcd.enabled=NO
+		
+		io.num=36
+		io.enabled=NO
+		
+		io.num=35
+		io.enabled=NO
+
+		io.num=34
+		io.enabled=NO
+
+		io.num=33
+		io.enabled=NO
+
+		io.num=32
+		io.enabled=NO
+	else
+		'clear the screen
+		lcd_clear()
+		lcd.lock
+	
+		romfile.open("Tibbo-5x7(VP).bin") 'default font
+		lcd.setfont(romfile.offset)
+	end if
+end sub
+
+sub lcd_proc_timer()
+	if display_installed=NO then exit sub
+	
+	if lcd_on_ctr>0 then
+		lcd_on_ctr=lcd_on_ctr-1
+		if lcd_on_ctr=0 then
+			lcd.lock
+			user_uses_button=NO
+		end if
+	end if
+end sub
+
+sub lcd_show_wln_mkey_message()
+	if display_installed=NO then exit sub
+	
+	lcd_clear()
+	
+	lcd.textalignment=PL_LCD_TEXT_ALIGNMENT_TOP_CENTER
+	lcd.printaligned("Calculating WPA security key...",0,0,lcd.width,lcd.height)	
+end sub
+
+sub lcd_show_wln_mkey_progress(progress as byte)
+	if display_installed=NO then exit sub
+
+	lcd.textalignment=PL_LCD_TEXT_ALIGNMENT_BOTTOM_CENTER
+	lcd.printaligned(str(progress)+"%",0,0,lcd.width,lcd.height)	
+end sub
+
+function lcd_get_current_page() as enum_lcd_pages
+	lcd_get_current_page=lcd_current_page
+end function
+
+sub lcd_display_on()
+	lcd_on_ctr=DISPLAY_ON_TIME
+	lcd.unlock
+end sub
+
+
+sub lcd_display_page(page as enum_lcd_pages, mode as enum_lcd_print_modes, element as enum_lcd_print_elements)
+	dim f as byte
+
+	if display_installed=NO then exit sub
+
+	select case lcd_current_page
+	case LCD_PAGE_NET,LCD_PAGE_WLN, LCD_PAGE_CH1, LCD_PAGE_CH2, LCD_PAGE_CH3, LCD_PAGE_CH4:
+		'Can freely advance to the next page
+	
+	case LCD_PAGE_SER_PROG_MODE, LCD_PAGE_ERROR, LCD_PAGE_LOGO, LCD_PAGE_INIT_START, LCD_PAGE_INIT_DONE:
+		'only specifying direct page can move you away from this page
+		if page=LCD_ADVANCE_PAGE then
+			page=lcd_current_page
+		end if
+	
+	end select
+
+	select case mode
+	case LCD_PRINT_MODE_GENTLE:
+		if lcd_on_ctr=0 or page<>lcd_current_page then exit sub
+	
+	case LCD_PRINT_MODE_STANDARD:
+		if lcd_on_ctr>0 and user_uses_button=YES and page<>lcd_current_page then exit sub
+	
+	case LCD_PRINT_MODE_AGGRESSIVE:
+		'always
+	end select
+	
+	if page<>lcd_current_page then element=LCD_PRINT_ELEMENT_ALL
+	
+	if page=LCD_ADVANCE_PAGE then
+		if lcd_on_ctr>0 then lcd_current_page=lcd_current_page+1
+		if lcd_current_page>=LCD_PAGE_SER_PROG_MODE then lcd_current_page=0
+	else
+		lcd_current_page=page
+	end if
+
+	if element=LCD_PRINT_ELEMENT_ALL then lcd_clear()
+	
+	select case lcd_current_page
+	case LCD_PAGE_NET:
+		if net.linkstate=PL_NET_LINKSTAT_NOLINK then
+			lcd_print_icon("ethernet_unplugged.bmp")
+			lcd_print_top_text("UNPLUGGED")
+		else
+			lcd_print_icon("ethernet_plugged.bmp")
+			lcd_print_dhcp(PL_SOCK_INTERFACE_NET)
+			lcd_print_ip(net.ip)
+		end if
+		
+	case LCD_PAGE_WLN:
+		if wln_already_started=YES then	
+			dim s as string(30)
+			if wln_error<>NO then
+				select case wln_recent_status
+				case WLN_STATUS_BOOT_FAILURE:		s="Wi-Fi interface not present"
+				case WLN_STATUS_INVALID_WEP_KEY:	s="Invalid WEP password"
+				case else:							s="Firmware error"
+				end select
+			
+				lcd_print_icon("wifi_error.bmp")
+				lcd_print_top_text("Wi-Fi ERROR")
+				lcd_print_bottom_text(s)
+			else
+				if interface_ready(PL_SOCK_INTERFACE_WLN)=NO then
+
+					select case wln_recent_status
+					case WLN_STATUS_OK:							s=" "
+					case WLN_STATUS_SCANNING_FAILURE:			s="AP not found"
+					case WLN_STATUS_ASSOCIATION_FAILURE:		s="Association failure"
+					case WLN_STATUS_DISASSOCIATION:				s="Disassociated"
+					case WLN_STATUS_UNEXPECTED_ERROR:			s="Unexpected error"
+					case else:									s="Firmware error"
+					end select
+					
+					lcd_print_icon("wifi_connecting.bmp")
+					lcd_print_top_text(param_wa)
+					lcd_print_bottom_text("CONNECTING...`"+s)
+				else
+					dim x as byte
+					x=(wln.rssi/40)+1
+					if x>5 then x=5
+					select case x
+					case 1:	lcd_print_icon("wifi_signal_1.bmp")
+					case 2: lcd_print_icon("wifi_signal_2.bmp")
+					case 3:	lcd_print_icon("wifi_signal_3.bmp")
+					case 4:	lcd_print_icon("wifi_signal_4.bmp")
+					case 5:	lcd_print_icon("wifi_signal_5.bmp")
+					end select
+
+					lcd_print_dhcp(PL_SOCK_INTERFACE_WLN)
+					lcd_print_ip(wln.ip)
+				end if
+			end if
+		else
+			lcd_print_icon("wifi_off.bmp")
+			lcd_print_top_text("Wi-Fi OFF")
+		end if
+
+	'case LCD_PAGE_GPRS:
+		'disabled until we have something with GPRS and display
+
+	case LCD_PAGE_CH1, LCD_PAGE_CH2, LCD_PAGE_CH3, LCD_PAGE_CH4:
+		dim ch as byte
+		dim ser_num_bup as byte=ser.num
+		dim sock_num_bup as byte=sock.num
+		dim s as string(40)
+		dim interface as byte
+	
+		ch=lcd_current_page-LCD_PAGE_CH1
+		ser.num=ch
+		sock.num=sock_comm(ser.num)
+		
+		if port_in_use(ch)=NO then
+			if element=LCD_PRINT_ELEMENT_ALL then
+				lcd_print_icon("ser_channel.bmp")
+				lcd_print_top_text("CHANNEL #"+str(ch+1))
+				lcd_print_bottom_text("NOT IN USE")
+			end if
+		else	
+			if element=LCD_PRINT_ELEMENT_ALL then
+			
+				s="CH#"+str(ch+1)
+			
+				interface=param_si(ch)
+				select case interface
+				case 0: s=s+" RS232`"
+				case 1:	s=s+" RS485`"
+				case 2:	s=s+" RS422`"
+				end select
+
+				select case sock.protocol
+				case PL_SOCK_PROTOCOL_UDP: s=s+"UDP"
+				case PL_SOCK_PROTOCOL_TCP: s=s+"TCP" 				
+				case PL_SOCK_PROTOCOL_RAW: s=s+"RAW"
+				end select
+			
+				s=s+"  :"+sock.localportlist
+			
+				lcd_print_top_text(s)
+			end if
+
+			if element=LCD_PRINT_ELEMENT_ALL or element=LCD_PRINT_ELEMENT_CH_OTF then
+				dim i as word
+				if ser.baudrate<=ser.div9600 then
+					i=ser.div9600/ser.baudrate
+					select case i
+					case 1
+						s="9600"
+					case 2
+						s="19200"
+					case 4
+						s="38400"
+					case 6
+						s="57600"
+					case 12
+						s="115200"
+					case 24
+						s="230400"
+					case else
+						s="460800"
+					end select
+				else
+					i=ser.baudrate/ser.div9600
+					select case i
+					case 2
+						s="4800"
+					case 4
+						s="2400"
+					case 8
+						s="1200"
+					case 64
+						s="150"
+					case 32
+						s="300"
+					case 16
+						s="600"
+					case else
+						s="28800"
+					end select
+				end if
+
+				if ser.bits=PL_SER_BB_7 then
+					s=s+"-7"
+				else	
+					s=s+"-8"
+				end if
+
+				select case ser.parity
+				case PL_SER_PR_NONE: s=s+"N1"
+				
+				case PL_SER_PR_EVEN: s=s+"E1"
+				
+				case PL_SER_PR_ODD: s=s+"O1"
+				
+				case PL_SER_PR_MARK: s=s+"M1"
+				
+				case PL_SER_PR_SPACE: s=s+"S1"
+					
+				end select
+
+				if interface<>1 then
+					if ser.flowcontrol=DISABLED then
+						s=s+"    `"
+					else if ser.flowcontrol=PL_SER_FC_RTSCTS then
+						s=s+" RTS`"
+					else
+						s=s+" XON`"
+					end if
+				end if		
+				
+				select case sock.statesimple
+				case PL_SSTS_CLOSED:
+					'no connection at this time
+					select case sock.state
+					case PL_SST_CL_PRESET_POPENING,
+						 PL_SST_CL_PRESET_AOPENING,
+						 PL_SST_CL_PRESET_EST,
+						 PL_SST_CL_PRESET_PCLOSING,
+						 PL_SST_CL_PRESET_ACLOSING,
+						 PL_SST_CL_PRESET_STRANGE:
+						'connection was reset by the other end
+						lcd_print_icon("connection_reset.bmp")
+						s=s+sock.remoteip+":"+str(sock.remoteport)
+					case else:
+						'idle (and not because it was reset by other end)
+						lcd_print_icon("ser_channel.bmp")
+						s=s+"IDLE"
+					end select
+
+				case PL_SSTS_ARP:
+					'connection is being established
+					lcd_print_icon("connection_arp.bmp")
+					s=s+sock.remoteip+":"+str(sock.remoteport)
+				
+				case PL_SSTS_PO, PL_SSTS_AO:
+					lcd_print_icon("connection_opening.bmp")
+					s=s+sock.remoteip+":"+str(sock.remoteport)
+				
+				case PL_SSTS_EST, PL_SSTS_PC, PL_SSTS_AC :
+					lcd_print_icon("connection_est.bmp")
+					s=s+sock.remoteip+":"+str(sock.remoteport)
+				end select
+
+				lcd_print_bottom_text(s)
+			end if
+		end if
+		
+		ser.num=ser_num_bup
+		sock.num=sock_num_bup
+	
+	case LCD_PAGE_SER_PROG_MODE:
+		if element=LCD_PRINT_ELEMENT_ALL then
+			lcd_print_full_screen("SERIAL PROGRAMMING MODE")
+		end if
+	
+	case LCD_PAGE_LOGO:
+		romfile.open("11x19(HP).bin") 'we need a real bitmap logo
+		lcd.setfont(romfile.offset)
+		lcd.textalignment=PL_LCD_TEXT_ALIGNMENT_TOP_CENTER
+		lcd.printaligned("TIBBO",0,0,lcd.width,lcd.height)	
+		romfile.open("Tibbo-5x7(VP).bin") 'we need a real bitmap logo
+		lcd.setfont(romfile.offset)
+		
+		lcd.textalignment=PL_LCD_TEXT_ALIGNMENT_BOTTOM_CENTER
+		lcd.printaligned("Booting...",0,0,lcd.width,lcd.height)	
+		
+	case LCD_PAGE_ERROR
+		lcd_print_full_screen("ERROR MODE!`Press & hold to reinitialize the device.")
+
+	case LCD_PAGE_INIT_START
+		lcd_print_full_screen("INIT IN PROGRESS`Do not power off the device!")
+	
+	case LCD_PAGE_INIT_DONE
+		lcd_print_full_screen("INIT COMPLETE`Reboot the device now")
+
+	end select
+
+	'show the "scroll bar"
+	if lcd_current_page<=LCD_PAGE_SER_PROG_MODE then
+		for f=0 to LCD_PAGE_SER_PROG_MODE-1
+			if f=lcd_current_page then
+				lcd.fill(lcd.width-5,f*6,5,2)
+			else	
+				lcd.fill(lcd.width-2,f*6,2,2)
+			end if
+		next f
+	end if
+
+	if lcd_on_ctr=0 then lcd.unlock
+	if mode<>LCD_PRINT_MODE_GENTLE then	lcd_on_ctr=DISPLAY_ON_TIME
+	lcd.unlock
+end sub
+
+sub lcd_print_icon(byref name as string)
+	romfile.open(name)
+	lcd.bmp(romfile.offset,0,0,0,0,lcd.width,lcd.height)
+end sub
+
+sub lcd_print_dhcp(interface as pl_sock_interfaces)
+	dim s as string(20)
+	
+	if (interface=PL_SOCK_INTERFACE_NET and param_dh=NO) or (interface=PL_SOCK_INTERFACE_WLN and param_wd=NO) then
+		s=" OFF"
+	else
+		if ip_configured(interface)=NO then
+			s="..."
+		else
+			if dhcp_failed(interface)=NO then
+				s=" OK"
+			else
+				s=" fail"
+			end if
+		end if
+	end if
+
+	if interface=PL_SOCK_INTERFACE_WLN then
+		if current_interface=PL_SOCK_INTERFACE_WLN then
+			s=s+"`"+"ACTIVE"
+		else
+			s=s+"`"+"I/F IDLE"
+		end if
+	end if
+
+	lcd_print_bottom_text("DHCP"+s)
+end sub
+
+sub lcd_print_top_text(byref text as string)
+	lcd.textalignment=PL_LCD_TEXT_ALIGNMENT_MIDDLE_LEFT
+	lcd.printaligned(text,18,0,70,16)
+end sub
+
+sub lcd_print_bottom_text(byref text as string)
+	lcd.textalignment=PL_LCD_TEXT_ALIGNMENT_BOTTOM_LEFT
+	lcd.printaligned(text,0,16,91,16)
+end sub
+
+sub lcd_print_full_screen(byref text as string)
+	lcd.textalignment=PL_LCD_TEXT_ALIGNMENT_MIDDLE_CENTER
+	lcd.printaligned(text,0,0,lcd.width-4,lcd.height)
+end sub
+
+sub lcd_print_ip(byref ip as string)
+	lcd.textalignment=PL_LCD_TEXT_ALIGNMENT_TOP_RIGHT
+	lcd.printaligned(ddstr(left(ddval(ip),3))+".",18,2,96-18-12,lcd.fontheight)
+	
+	romfile.open("11x19(HP).bin")
+	lcd.setfont(romfile.offset)
+	lcd.textalignment=PL_LCD_TEXT_ALIGNMENT_BOTTOM_RIGHT
+	lcd.printaligned(ddstr(right(ddval(ip),1)),51,17,96-51-10,lcd.fontheight)
+	romfile.open("Tibbo-5x7(VP).bin") 'default font
+	lcd.setfont(romfile.offset)
+end sub
+
+sub lcd_clear()
+		lcd.forecolor=0
+		lcd.fill(0,0,lcd.width,lcd.height)
+		lcd.forecolor=1
+end sub
+
+#endif

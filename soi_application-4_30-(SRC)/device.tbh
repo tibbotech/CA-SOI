@@ -1,0 +1,220 @@
+const DEV_STAMP="DEV> "
+const DEV_CR_LF=chr(13)+chr(10)
+
+
+'=============================================================================
+
+const LONG_PRESS_CONST=6		'in 0.5 sec intervals -- for how long the MD button should be pressed to be considered "long-pressed"
+
+
+#if(PLATFORM_ID=TPP3WG2)
+	aaa
+	const SOCK_UDP_TXBUFF_SIZE=3	'this is for the RX buffer for UDP commands (change not recommended)
+	const SOCK_UDP_RXBUFF_SIZE=2	'this is for the TX buffer for UDP replies  (change not recommended)
+	const SOCK_HTTP_TXBUFF_SIZE=4	'number of buffer pages allocated for HTTP sockets (change not recommended)
+#else
+	const SOCK_UDP_TXBUFF_SIZE=2	'this is for the RX buffer for UDP commands (change not recommended)
+	const SOCK_UDP_RXBUFF_SIZE=2	'this is for the TX buffer for UDP replies  (change not recommended)
+	const SOCK_HTTP_TXBUFF_SIZE=2	'number of buffer pages allocated for HTTP sockets (change not recommended)
+#endif
+
+const BUTTON_CONST_QUICK_INIT=5 'in 0.5 intervals -- how long you need to press button for quick init
+const CONNECTION_HOLDOFF_ON_RST=6 'connection holdoff const (in seconds)- don't decrease, can't see meaningful LED patterns then
+const CMD_ESC_CHAR="@" 'for specifying channel (port) number
+
+'these timeouts are in seconds
+const LOGIN_TOUT_CONST_INBAND=60
+const LOGIN_TOUT_CONST_HTTP=60
+const LOGIN_TOUT_CONST_TELNET=60
+const LOGIN_TOUT_CONST_UDP=60
+const LOGIN_TOUT_CONST_SERIAL=0 'no timeout
+
+const PAT_ONE_SHORT_GREEN=			"---------------G"
+const PAT_BOTH_LOOP=				"B~"
+const PAT_GREEN_LOOP=				"G~"
+const PAT_TWO_SHORT_RED=			"-----RRRRRR--R-R"
+const PAT_THREE_SHORT_RED=			"-----------R-R-R"
+const PAT_TWO_SHORT_GREEN=			"-------------G-G"
+const PAT_THREE_SHORT_GREEN=		"-----------G-G-G"
+const PAT_BLINK_BOTH_IN_TURNS_FAST=	"GRGRGRGR**"
+const PAT_BLINK_BOTH_TOGETHER_FAST=	"B-B-B-B-**~"
+const PAT_THREE_BOTH_ONCE=			"--B-B-B--"
+const PAT_BLINK_BOTH_IN_TURNS=		"RG"
+const PAT_BLINK_RED_SLOW=			"--RR"
+const PAT_GREEN_ON=					"G"
+const PAT_BOTH_ON=					"B"
+const PAT_GREEN_GAP=				"-GGGG**"
+const PAT_RED_ON_GREEN_GAP=			"RBBBB**"
+const PAT_BLINK_GREEN=				"-G"
+const PAT_GAP=						"-**"
+const PAT_LONG_GREEN=				"GGGGGGGG-"
+const PAT_LONG_RED=					"RRRRRRRR-"
+const BEEP_LONG=					"BBBBBB"
+const BEEP_SHORT=					"BB"
+const PAT_RED_LOOP=					"R~" 'for manufacture test  (steve)
+
+
+const NOTIF_BIT_POSITION_DSR=&b00000100
+const NOTIF_BIT_POSITION_DTR=&b00001000
+const NOTIF_BIT_POSITION_CTS=&b00010000
+const NOTIF_BIT_POSITION_RTS=&b00100000
+
+
+
+
+CONST NUM_HTTP_SOCKETS=3
+
+enum bb_modes
+	BB_7,
+	BB_8	
+end enum
+
+enum br_modes
+	BR_1200,
+	BR_2400,
+	BR_4800,
+	BR_9600,
+	BR_19200,
+	BR_38400,
+	BR_57600,
+	BR_115200,
+	BR_150,
+	BR_300,
+	BR_600,
+	BR_28800,
+	BR_230400,
+	BR_460800
+end enum
+
+enum pr_modes
+	PR_NONE,
+	PR_EVEN,
+	PR_ODD,
+	PR_MARK,
+	PR_SPACE
+end enum
+
+enum fc_modes
+	FC_DIS,
+	FC_RTSCTS,
+	FC_XONXOFF
+end enum
+
+enum en_routing_modes
+	RM_SERVER,
+	RM_SERVER_CLIENT,
+	RM_CLIENT
+end enum
+
+enum en_connection_modes
+	CM_IMMEDIATELY,
+	CM_DATA_COMMAND,
+	CM_COMMAND,
+	CM_COMMAND_DSR
+end enum
+
+enum cmd_modes 'in the order of least to highest priority
+	CMD_MODE_NONE,
+	CMD_MODE_INBAND,
+	CMD_MODE_HTTP,
+	CMD_MODE_TELNET,
+	CMD_MODE_UDP,
+	CMD_MODE_SERIAL
+end enum
+
+enum login_comparison_codes
+	LC_WILL_ACCEPT,
+	LC_WILL_ACCEPT_REPEATED_LOGIN,
+	LC_WILL_ACCEPT_LOWER_IN_PROGRESS,
+	LC_WILL_REJECT_HIGHER_IN_PROGRESS,
+	LC_WILL_REJECT_SAME_IN_PROGRESS
+end enum
+
+enum last_65535
+	ND_PORT_LAST,
+	ND_PORT_65535
+end enum
+
+enum quick_init_states
+	QI_NULL,
+	QI_OK,
+	QI_NG
+end enum
+
+enum en_param_we
+	WE_DISABLED,
+	WE_ENABLED_ONDEMAND,
+	WE_ENABLED_PERMANENT
+end enum
+
+enum en_param_ge
+	GE_DISABLED,
+	GE_ENABLED_ONDEMAND,
+	GE_ENABLED_PERMANENT
+end enum
+
+declare error_mode as no_yes
+declare pat_canint as no_yes
+declare sock_connection_holdoff_tmr(MAX_NUM_SERIAL_PORTS) as byte
+declare overrun_se(MAX_NUM_SERIAL_PORTS) as no_yes
+declare overrun_es(MAX_NUM_SERIAL_PORTS) as no_yes
+declare login_mode as cmd_modes
+declare login_sock as byte
+declare login_data as string(32)
+declare login_tout as word
+declare dsr_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
+declare dtr_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
+declare cts_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
+declare port_in_use(MAX_NUM_SERIAL_PORTS) as no_yes
+declare io_state_changed(MAX_NUM_SERIAL_PORTS) as no_yes
+declare dsr_state_curr(MAX_NUM_SERIAL_PORTS), dsr_state_prev(MAX_NUM_SERIAL_PORTS) as byte
+declare dtr_state_curr(MAX_NUM_SERIAL_PORTS), dtr_state_prev(MAX_NUM_SERIAL_PORTS) as byte
+declare cts_state_curr(MAX_NUM_SERIAL_PORTS), cts_state_prev(MAX_NUM_SERIAL_PORTS) as byte
+declare rts_state_curr(MAX_NUM_SERIAL_PORTS), rts_state_prev(MAX_NUM_SERIAL_PORTS) as byte
+declare most_resent_notif_dest_ip(MAX_NUM_SERIAL_PORTS) as string(15)
+declare most_resent_notif_dest_port(MAX_NUM_SERIAL_PORTS) as word
+declare overriding_destination_set(MAX_NUM_SERIAL_PORTS) as no_yes
+declare can_show_data_transmission(MAX_NUM_SERIAL_PORTS) as no_yes
+declare quick_init_flag as quick_init_states
+declare display_installed as no_yes
+#if WLN_AVAILABLE
+	declare wln_recent_status as en_wln_status_codes
+#endif
+
+declare param_dh as no_yes
+declare param_wd as no_yes
+declare param_rm(MAX_NUM_SERIAL_PORTS) as en_routing_modes
+declare param_sf(MAX_NUM_SERIAL_PORTS) as no_yes
+declare param_cm(MAX_NUM_SERIAL_PORTS) as en_connection_modes
+declare param_dt(MAX_NUM_SERIAL_PORTS) as no_yes
+declare param_ds(MAX_NUM_SERIAL_PORTS) as low_high
+declare param_rc(MAX_NUM_SERIAL_PORTS) as no_yes
+declare param_op(MAX_NUM_SERIAL_PORTS) as no_yes
+declare param_nb(MAX_NUM_SERIAL_PORTS) as byte
+declare param_nd(MAX_NUM_SERIAL_PORTS) as last_65535
+declare param_si(MAX_NUM_SERIAL_PORTS) as byte
+
+declare function proc_device_op(s as string(1)) as string(1)
+declare sub device_setting_set(sname as string(STG_MAX_SETTING_NAME_LEN), index as byte, s as string)
+declare function device_setting_check(byref setting_name as string,byref setting_val as string) as ok_ng
+declare function device_spec_arg_sg(byref setting_name as string, byref setting_val as string, byref stg_num as byte, rw as en_stg_rdwr) as en_stg_status_codes
+declare function baudrate_set(br_mode as br_modes) as ok_ng
+declare function baudrate_get() as br_modes
+declare sub set_ser_channel_for_prog_mode(channel_num as byte)
+declare sub set_ser_channel_for_normal_mode(channel_num as byte)
+declare sub enter_ser_prog_mode(channel_num as byte)
+declare sub exit_ser_prog_mode(channel_num as byte)
+declare sub set_sock_connmode(channel_num as byte)
+declare sub decide_on_ser_enabled(channel_num as byte)
+declare sub decide_on_sock_connect(channel_num as byte)
+declare function get_x_flags_network(interface as pl_sock_interfaces) as string(10)
+declare function get_x_flags_serial(channel_num as byte) as string(10)
+declare function login(new_login as cmd_modes, cmd_data as string(32), sock as byte) as ok_ng
+declare sub logout()
+declare function compare_logins(new_login as cmd_modes, cmd_data as string(32), sock as byte) as login_comparison_codes
+declare sub reset_login_timeout
+declare function init_settings_of_one_channel(channel_num as byte) as ok_ng
+declare sub add_serial_channel_to_login_data(channel_num as byte)
+declare sub remove_serial_channel_from_login_data(channel_num as byte)
+declare function check_if_serial_channel_is_in_login_state(channel_num as byte) as no_yes
+declare function test_io_pair(line_out as pl_io_num, line_in as pl_io_num) as ok_ng
