@@ -83,7 +83,7 @@ sub ethernet_link_state_change(new_state as pl_net_linkstate)
 						dev_debugprint("Start Wi-Fi")
 					#endif
 					num_wln_failures=0
-					if wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC)<>WLN_STATUS_OK then
+					if wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)<>WLN_STATUS_OK then
 						#if DEV_DEBUG_PRINT
 							dev_debugprint("Wi-Fi MALFUNCTIONED (could not start)")
 						#endif
@@ -112,7 +112,7 @@ sub ethernet_link_state_change(new_state as pl_net_linkstate)
 					#if DEV_DEBUG_PRINT
 						dev_debugprint("Start GPRS")
 					#endif
-					if gprs_start(param_ga,param_gp)<>GPRS_STATUS_OK then
+					if gprs_start(param_ga,param_gp,"","")<>GPRS_STATUS_OK then
 						#if DEV_DEBUG_PRINT
 							dev_debugprint("GPRS MALFUNCTIONED (could not start)")
 						#endif
@@ -224,7 +224,7 @@ sub callback_wln_failure(wln_state as en_wln_status_codes)
 					#if DEV_DEBUG_PRINT
 						dev_debugprint("Start GPRS")
 					#endif
-					if gprs_start(param_ga,param_gp)<>GPRS_STATUS_OK then
+					if gprs_start(param_ga,param_gp,"","")<>GPRS_STATUS_OK then
 						#if DEV_DEBUG_PRINT
 							dev_debugprint("GPRS MALFUNCTIONED (could not start)")
 						#endif
@@ -1533,3 +1533,12 @@ sub dev_debugprint(byref print_data as string)
 	sys.debugprint(DEV_STAMP+print_data+DEV_CR_LF)
 end sub
 #endif
+
+sub callback_wln_starting_association()
+	
+end sub
+
+sub callback_wln_rescan_for_better_ap()
+	
+end sub
+
