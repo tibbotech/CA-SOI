@@ -481,35 +481,46 @@ public sub boot
 			end if
 			param_wa=stg_get("WA",0)
 			param_ws=val(stg_get("WS",0))
-
+			wln_init()
 			select case param_ws
 			case WLN_SECURITY_MODE_DISABLED:
 				wln_password=""
 			case WLN_SECURITY_MODE_WEP64,WLN_SECURITY_MODE_WEP128:
 				wln_password=stg_get("WP",0)
-		#if WLN_WPA	
 			case else:
-				if param_wa=stg_get("WA",1) and stg_get("WP",0)=stg_get("WP",1) and stg_sg("WK",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK and len(wln_password)=32 then
-				else
-					#if SUPPORTS_DISPLAY
-						lcd_show_wln_mkey_message()
-					#endif
-					pat.channel=0
-					pat.play(PAT_BOTH_LOOP,PL_PAT_CANINT)
-					wln_password=wln_wpa_mkey_get(stg_get("WP",0),stg_get("WA",0))
-					stg_set("WK",0,wln_password)
-					stg_set("WS",1,str(param_ws))
-					stg_set("WA",1,param_wa)
-					stg_set("WP",1,stg_get("WP",0))
+				if wln.getmoduletype = PL_WLN_MODULE_TYPE_GA1000 then
+#if GA1000
+					if param_wa=stg_get("WA",1) and stg_get("WP",0)=stg_get("WP",1) and stg_sg("WK",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK and len(wln_password)=32 then
+					else
+						#if SUPPORTS_DISPLAY
+							lcd_show_wln_mkey_message()
+						#endif
+						pat.channel=0
+						pat.play(PAT_BOTH_LOOP,PL_PAT_CANINT)
+						wln_password=wln_wpa_mkey_get(stg_get("WP",0),stg_get("WA",0))
+						stg_set("WK",0,wln_password)
+						stg_set("WS",1,str(param_ws))
+						stg_set("WA",1,param_wa)
+						stg_set("WP",1,stg_get("WP",0))
+					end if
+#endif
+				else 
+					if param_wa=stg_get("WA",1) and stg_get("WP",0)=stg_get("WP",1) and stg_sg("WK",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK then
+					else
+						wln_password=stg_get("WP",0)
+						stg_set("WK",0,wln_password)
+						stg_set("WS",1,str(param_ws))
+						stg_set("WA",1,param_wa)
+						stg_set("WP",1,stg_get("WP",0))
+					end if
 				end if
-		#endif	
 			end select
 			
 			if param_we=WE_ENABLED_PERMANENT then
 				#if DEV_DEBUG_PRINT
 					dev_debugprint("Start Wi-Fi")
 				#endif
-				wln_init()
+				wln_init() 
 				if wln.getmoduletype=PL_WLN_MODULE_TYPE_GA1000 then
 					wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)
 				else 

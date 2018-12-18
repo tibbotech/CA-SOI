@@ -1484,7 +1484,7 @@ function get_x_flags_serial(channel_num as byte) as string(10)
 
 end function
 
-#if PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W
+#if PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W or PLATFORM_ID=DS1101N or PLATFORM_ID=DS1102N
 function test_io_pair(line_out as pl_io_num, line_in as pl_io_num) as ok_ng
 'added by Steve
 	dim	f as byte
