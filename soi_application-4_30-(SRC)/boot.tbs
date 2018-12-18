@@ -21,6 +21,8 @@ public sub boot
 	if stg_start()<>EN_STG_STATUS_OK then
 		goto boot_failed
 	end if
+	
+'	stg_restore_multiple(EN_STG_INIT_MODE_OVERRIDE)
 
 	'form configuration words for descriptor files
 	dsman_config=0
@@ -509,8 +511,12 @@ public sub boot
 				#if DEV_DEBUG_PRINT
 					dev_debugprint("Start Wi-Fi")
 				#endif
-				
-				wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC)
+				wln_init()
+				if wln.getmoduletype=PL_WLN_MODULE_TYPE_GA1000 then
+					wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)
+				else 
+					wln_recent_status=wln_start(param_wa,param_ws,stg_get("WP",1),PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)
+				end if
 				if wln_recent_status<>WLN_STATUS_OK then
 					#if DEV_DEBUG_PRINT
 						dev_debugprint("Wi-Fi MALFUNCTIONED (could not start)")
@@ -539,7 +545,8 @@ public sub boot
 				#if DEV_DEBUG_PRINT
 					dev_debugprint("Start GPRS")
 				#endif
-				if gprs_start(param_ga,param_gp)<>GPRS_STATUS_OK then
+				'if gprs_start(param_ga,param_gp)<>GPRS_STATUS_OK then
+				if gprs_start(param_ga,param_gp,"","")<>GPRS_STATUS_OK then
 					#if DEV_DEBUG_PRINT
 						dev_debugprint("GPRS MALFUNCTIONED (could not start)")
 					#endif
