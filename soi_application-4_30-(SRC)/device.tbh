@@ -7,8 +7,7 @@ const DEV_CR_LF=chr(13)+chr(10)
 const LONG_PRESS_CONST=6		'in 0.5 sec intervals -- for how long the MD button should be pressed to be considered "long-pressed"
 
 
-#if(PLATFORM_ID=TPP3WG2)
-	aaa
+#if PLATFORM_ID=TPP3WG2
 	const SOCK_UDP_TXBUFF_SIZE=3	'this is for the RX buffer for UDP commands (change not recommended)
 	const SOCK_UDP_RXBUFF_SIZE=2	'this is for the TX buffer for UDP replies  (change not recommended)
 	const SOCK_HTTP_TXBUFF_SIZE=4	'number of buffer pages allocated for HTTP sockets (change not recommended)

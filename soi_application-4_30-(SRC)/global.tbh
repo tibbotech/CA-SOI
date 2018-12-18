@@ -2,12 +2,10 @@
 
 #define DHCP_DEBUG_PRINT 0
 #define DEV_DEBUG_PRINT 0
+#define WLN_DEBUG_PRINT 0
+
 #define GA1000 1
-#define DHCP_DEBUG_PRINT 1
-
-#define WLN_DEBUG_PRINT 1
-
-#define SIMULATE_ETHER_OFF_BY_BUTTON 1 'set to 1 to use button for simulating unplugged Ethernet cable
+#define SIMULATE_ETHER_OFF_BY_BUTTON 0 'set to 1 to use button for simulating unplugged Ethernet cable
 
 'Three major app configuration:
 #define PORT_SCHEME_4P 0	'four independent serial ports

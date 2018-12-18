@@ -22,8 +22,6 @@ public sub boot
 		goto boot_failed
 	end if
 	
-'	stg_restore_multiple(EN_STG_INIT_MODE_OVERRIDE)
-
 	'form configuration words for descriptor files
 	dsman_config=0
 	html_print_setting_flags_settings_page=0
@@ -545,7 +543,6 @@ public sub boot
 				#if DEV_DEBUG_PRINT
 					dev_debugprint("Start GPRS")
 				#endif
-				'if gprs_start(param_ga,param_gp)<>GPRS_STATUS_OK then
 				if gprs_start(param_ga,param_gp,"","")<>GPRS_STATUS_OK then
 					#if DEV_DEBUG_PRINT
 						dev_debugprint("GPRS MALFUNCTIONED (could not start)")
