@@ -505,7 +505,7 @@ public sub boot
 					end if
 #endif
 				else 
-					if param_wa=stg_get("WA",1) and stg_get("WP",0)=stg_get("WP",1) and stg_sg("WK",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK then
+					if param_wa=stg_get("WA",1) and stg_get("WP",0)=stg_get("WP",1) and stg_sg("WP",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK then
 					else
 						wln_password=stg_get("WP",0)
 						stg_set("WK",0,wln_password)
