@@ -2,8 +2,8 @@
 version=1
 platform=TPP3W(G2)
 src_lib_ver=2_01_02
-name=soi_application-4_31
-output=soi_application-4_31.tpc
+name=soi_application-4_32
+output=soi_application-4_32.tpc
 debug=off
 defines= /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_FD=FD_ENABLED /dOBJECT_KP=KP_ENABLED /dOBJECT_WLN=WLN_ENABLED
 transport=udp_winpcap
