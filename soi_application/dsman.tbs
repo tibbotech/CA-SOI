@@ -1092,7 +1092,7 @@ d1:			if x>=num_sdf then goto reply_err
 					ser.enabled=NO
 					ser.interface=PL_SER_SI_FULLDUPLEX
 
-					#if PLATFORM_ID=DS1102W
+					#if PLATFORM_ID=DS1102W or  PLATFORM_ID=DS1102N 
 						io.lineset(SER0_HDFD,HIGH)
 						io.lineset(SER0_RSMD,LOW)
 					#endif
@@ -1137,7 +1137,7 @@ d1:			if x>=num_sdf then goto reply_err
 
 					ser.enabled=YES
 
-			#if PLATFORM_ID=DS1102W
+			#if PLATFORM_ID=DS1102W or PLATFORM_ID=DS1102N
 				case "1": 'RS485
 					ser.num=0
 					ser.enabled=NO
@@ -1202,7 +1202,7 @@ d1:			if x>=num_sdf then goto reply_err
 					io.enabled=NO
 					#if PLATFORM_ID=DS1100
 						io.num=PL_IO_NUM_3_DTR
-					#elif PLATFORM_ID= DS1101W or  PLATFORM_ID=DS1102W
+					#elif PLATFORM_ID= DS1101W or  PLATFORM_ID=DS1102W or PLATFORM_ID= DS1101N or  PLATFORM_ID=DS1102N
 						io.num=PL_IO_NUM_5_TX2_INT5
 					#endif
 					io.enabled=YES
@@ -1761,7 +1761,7 @@ public sub ser_cmd_proc(byref cmd_str as string,cmd_source_ser_port as word,erro
 			goto reply_failed
 		#endif
 
-		#if PLATFORM_ID=DS1102W
+		#if PLATFORM_ID=DS1102W or  PLATFORM_ID=DS1102N
 		case "W":
 			reply_str=mid(cmd_str,3,len(cmd_str)-2)
 			goto reply_ok_have_data
