@@ -1,11 +1,11 @@
 [project]
 version=1
-platform=TPP3W(G2)
-src_lib_ver=2_01_02
+platform=EM510W
+src_lib_ver=2_01_03
 name=soi_application-4_32
 output=soi_application-4_32.tpc
 debug=off
-defines= /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_FD=FD_ENABLED /dOBJECT_KP=KP_ENABLED /dOBJECT_WLN=WLN_ENABLED
+defines=/dOBJECT_FD=FD_ENABLED /dOBJECT_WLN=WLN_ENABLED /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_KP=KP_ENABLED
 transport=udp_winpcap
 [address1]
 platform=DS1100
@@ -139,6 +139,10 @@ address=0.0.0.134.127.128
 platform=EM1206N
 transport=udp_winpcap
 address=0.0.0.134.127.128
+[address34]
+platform=EM510W
+transport=udp_winpcap
+address=0.1.2.3.4.231
 [file1]
 path=main.tbs
 type=basic
@@ -423,7 +427,7 @@ location=project
 path=ga1000fw.bin
 type=binary
 format=
-condition=
+condition=PLATFORM_ID <> EM510W
 locked=no
 location=project
 [file42]
