@@ -138,6 +138,9 @@
 	#define SUPPORTS_GPRS 0
 	#define SUPPORTS_APP_UPGR_BY_DSMAN 0
 	#define WLN_WPA 0
+#if PLATFORM_ID=EM510W
+	#define WLN_WPA 1
+#endif 
 	#define SUPPORTS_DISPLAY 0
 
 #elif PLATFORM_ID=NB1010
