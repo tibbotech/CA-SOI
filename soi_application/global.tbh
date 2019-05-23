@@ -250,7 +250,12 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 #else
 	#define DSMAN_MAX_NUM_LINES 42 
 	const NUM_SERIAL_PORTS=1						'max possible number of serial ports (must not exceed ser.numofports)
-	#define DSMAN_DESCRIPTOR_FILE "dsman_1p.txt"	'SDF file used by the DS Manager
+	
+	#if PLATFORM_ID = EM510W
+		#define DSMAN_DESCRIPTOR_FILE "dsman_1p_em510.txt"	'SDF file used by the DS Manager
+	#else 
+		#define DSMAN_DESCRIPTOR_FILE "dsman_1p.txt"	'SDF file used by the DS Manager
+	#endif 
 #endif
 
 #if PLATFORM_ID=EM500W or PLATFORM_ID=EM510W 
@@ -265,7 +270,7 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 
 
 #if WLN_AVAILABLE
-	#if PLATFORM_ID=EM500W
+	#if PLATFORM_ID=EM500W or PLATFORM_ID=EM510W
 		#define WLN_RESET_MODE 1
 	#elif PLATFORM_ID=EM1000W or PLATFORM_ID=EM2000W or PLATFORM_ID=EM1001W or PLATFORM_ID=NB1010W or PLATFORM_ID=TPP2W or PLATFORM_ID=TPP3W or PLATFORM_ID=TPP2WG2 or PLATFORM_ID=TPP3WG2 or PLATFORM_ID=EM1000N or PLATFORM_ID=EM1001N or PLATFORM_ID=TPP2N or PLATFORM_ID=TPP3N or PLATFORM_ID=NB1010N
 		#define WLN_RST PL_IO_NUM_51
@@ -412,7 +417,11 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 #if DEVICE_PORT_SCHEME=PORT_SCHEME_4P or DEVICE_PORT_SCHEME=PORT_SCHEME_4C
 	includepp "settings_4p_4c.xtxt"
 #else
-	includepp "settings_1p.xtxt"
+	#if PLATFORM_ID = EM510W
+		includepp "settings_1p_em510.xtxt"
+	#else 
+		includepp "settings_1p.xtxt"
+	#endif 
 #endif
 
 include "settings\trunk\settings.tbh"
