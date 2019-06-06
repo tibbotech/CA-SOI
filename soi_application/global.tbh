@@ -258,8 +258,10 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 	#endif 
 #endif
 
-#if PLATFORM_ID=EM500W or PLATFORM_ID=EM510W 
+#if PLATFORM_ID=EM500W 
 	#define	HTML_WIFI_DEF "html_config_wifi_em500w.txt"
+#elif PLATFORM_ID=EM510W 
+	#define	HTML_WIFI_DEF "html_config_wifi_em510w.txt"
 #else
 	#define	HTML_WIFI_DEF "html_config_wifi.txt"
 #endif

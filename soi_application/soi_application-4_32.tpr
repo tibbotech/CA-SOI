@@ -4,7 +4,7 @@ platform=EM510W
 src_lib_ver=2_01_03
 name=soi_application-4_32
 output=soi_application-4_32.tpc
-debug=off
+debug=on
 defines=/dOBJECT_FD=FD_ENABLED /dOBJECT_WLN=WLN_ENABLED /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_KP=KP_ENABLED
 transport=udp_winpcap
 [address1]
@@ -448,7 +448,7 @@ location=project
 path=html_config_wifi_em500w.txt
 type=text
 format=
-condition=
+condition=PLATFORM_ID = EM500W
 locked=no
 location=project
 [file45]
@@ -688,5 +688,12 @@ path=dsman_1p_em510.txt
 type=text
 format=65001
 condition=
+locked=no
+location=project
+[file70]
+path=html_config_wifi_em510w.txt
+type=text
+format=65001
+condition=PLATFORM_ID = EM510W
 locked=no
 location=project
