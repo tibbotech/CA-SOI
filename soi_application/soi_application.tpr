@@ -1,11 +1,11 @@
 [project]
 version=1
-platform=DS1102N
-src_lib_ver=2_01_02
+platform=EM510W
+src_lib_ver=2_01_03
 name=soi_application-4_33
-output=soi_application-4_33.tpc
-debug=off
-defines=/dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_FD=FD_ENABLED /dOBJECT_WLN=WLN_ENABLED /dOBJECT_KP=KP_ENABLED
+output=soi_application.tpc
+debug=on
+defines=/dOBJECT_FD=FD_ENABLED /dOBJECT_WLN=WLN_ENABLED /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_KP=KP_ENABLED
 transport=udp_winpcap
 [address1]
 platform=DS1100
@@ -139,6 +139,10 @@ address=0.0.0.134.127.128
 platform=EM1206N
 transport=udp_winpcap
 address=0.0.0.134.127.128
+[address34]
+platform=EM510W
+transport=udp_winpcap
+address=0.123.234.34.45.225
 [file1]
 path=main.tbs
 type=basic
@@ -423,7 +427,7 @@ location=project
 path=ga1000fw.bin
 type=binary
 format=
-condition=
+condition=PLATFORM_ID <> EM510W
 locked=no
 location=project
 [file42]
@@ -444,7 +448,7 @@ location=project
 path=html_config_wifi_em500w.txt
 type=text
 format=
-condition=
+condition=PLATFORM_ID = EM500W
 locked=no
 location=project
 [file45]
@@ -670,5 +674,26 @@ path=settings_4p_4c.xtxt
 type=xtext
 format=STG_lib_configurator
 condition=
+locked=no
+location=project
+[file68]
+path=settings_1p_em510.xtxt
+type=xtext
+format=STG_lib_configurator
+condition=
+locked=no
+location=project
+[file69]
+path=dsman_1p_em510.txt
+type=text
+format=65001
+condition=
+locked=no
+location=project
+[file70]
+path=html_config_wifi_em510w.txt
+type=text
+format=65001
+condition=PLATFORM_ID = EM510W
 locked=no
 location=project
