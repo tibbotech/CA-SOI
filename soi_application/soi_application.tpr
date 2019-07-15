@@ -2,7 +2,7 @@
 version=1
 platform=EM510W
 src_lib_ver=2_01_03
-name=soi_application-4_33
+name=soi_application
 output=soi_application.tpc
 debug=on
 defines=/dOBJECT_FD=FD_ENABLED /dOBJECT_WLN=WLN_ENABLED /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_KP=KP_ENABLED
