@@ -487,7 +487,9 @@ public sub boot
 				wln_password=""
 			case WLN_SECURITY_MODE_WEP64,WLN_SECURITY_MODE_WEP128:
 				wln_password=stg_get("WP",0)
-			case else:
+#if WLN_WPA 
+			case else:		
+			
 				if wln.getmoduletype = PL_WLN_MODULE_TYPE_GA1000 then
 #if GA1000
 					if param_wa=stg_get("WA",1) and stg_get("WP",0)=stg_get("WP",1) and stg_sg("WK",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK and len(wln_password)=32 then
@@ -514,6 +516,7 @@ public sub boot
 						stg_set("WP",1,stg_get("WP",0))
 					end if
 				end if
+#endif				
 			end select
 			
 			if param_we=WE_ENABLED_PERMANENT then
