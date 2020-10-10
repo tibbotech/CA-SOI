@@ -13,11 +13,48 @@ dim button_pressed_ctr as byte
 
 '====================================================================
 sub on_sys_init()
-	boot()
-	net_linkstate=1
+
+boot()
+
+
+#if PLATFORM_ID == WM2000
+net_linkstate=0
+#else 
+net_linkstate=1
+#if WLN_AVAILABLE
+				
+				'Try to replace with Wi-Fi
+				if wln_already_started=NO then
+					#if DEV_DEBUG_PRINT
+						dev_debugprint("Start Wi-Fi")
+					#endif
+					num_wln_failures=0					
+					if wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)<>WLN_STATUS_OK then
+						#if DEV_DEBUG_PRINT
+							dev_debugprint("Wi-Fi MALFUNCTIONED (could not start)")
+						#endif
+						wln_error=YES
+					else
+						wln_error=NO
+						wln_already_started=YES
+					end if
+				end if
+				
+				
+				change_current_interface(PL_SOCK_INTERFACE_WLN)
+				 
+				
+				'255 means Wi-Fi already fail and then we should allow GPRS to start (if enabled)
+				if num_wln_failures<>255 and wln_error=NO then
+					exit sub 
+				end if
+	
+		#endif
+#endif 
 end sub
 
 '--------------------------------------------------------------------
+#if NET_AVAILABLE 
 #if SIMULATE_ETHER_OFF_BY_BUTTON=0
 sub on_net_link_change()
 #else
@@ -25,6 +62,7 @@ sub on_button_released()
 #endif
 	
 	#if SIMULATE_ETHER_OFF_BY_BUTTON=0
+
 		net_linkstate=net.linkstate
 	#else
 		if net_linkstate=1 then
@@ -41,7 +79,7 @@ sub on_button_released()
 	#endif
 	
 end sub
-
+#endif 
 '--------------------------------------------------------------------
 #if SIMULATE_ETHER_OFF_BY_BUTTON=0
 sub on_button_released()
@@ -129,7 +167,11 @@ sub on_pat()
 	#endif
 
 	if pat.channel=0 then
+#if NET_AVAILABLE
 		if net.failure=YES or wln_error=YES or gprs_error=YES then
+#else 
+		if wln_error=YES or gprs_error=YES then
+#endif 
 			pat.play(PAT_TWO_SHORT_RED,PL_PAT_CANINT)
 			exit sub
 		end if

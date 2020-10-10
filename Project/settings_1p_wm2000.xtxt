@@ -30,15 +30,15 @@
 >>OP	E	B	1	0	1	A	0
 >>NB	E	B	1	0	255	A	0
 >>ND	E	B	1	0	1	A	0
->>WE	E	B	1	0	2	I	0
+>>WE	E	B	1	0	2	A	1
 >>WA	E	S	1	0	22	I	^
 >>WS	E	B	1	0	4	I	0
 >>WP	E	S	1	0	26	I	^
 >>WD	E	B	1	0	1	I	0
->>WI	E	D	1	4	4	I	192.168.1.40
+>>WI	E	D	1	4	4	I	1.0.0.1
 >>WG	E	D	1	4	4	I	1.0.0.1
 >>WN	E	D	1	4	4	I	0.0.0.0
-#define STG_DESCRIPTOR_FILE "settings_1p.xtxt"
+#define STG_DESCRIPTOR_FILE "settings_1p_wm2000.xtxt"
 #define STG_MAX_NUM_SETTINGS 40
 #define STG_RAM_ARRAY_SIZE 0
 #define STG_MAX_SETTING_NAME_LEN 2

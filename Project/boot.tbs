@@ -450,18 +450,19 @@ public sub boot
 	current_interface=PL_SOCK_INTERFACE_NET
 
 	'net. parameters and DHCP
+	#if NET_AVAILABLE
 	net.ip=validate_ip(stg_get("IP",0))
 	net.gatewayip=stg_get("GI",0)
 	net.netmask=stg_get("NM",0)
 	param_dh=val(stg_get("DH",0))
 	if param_dh<>NO then
 		ip_configured(PL_SOCK_INTERFACE_NET)=NO
-		dhcp_start(PL_SOCK_INTERFACE_NET,net.ip,"")
+		dhcp_start(PL_SOCK_INTERFACE_NET,net.ip,"")		
 		dhcp_used=YES
 	else
 		ip_configured(PL_SOCK_INTERFACE_NET)=YES
 	end if
-
+	#endif 
 	#if WLN_AVAILABLE
 		'Wi-Fi parameters and DHCP
 		wln_error=NO
@@ -507,6 +508,15 @@ public sub boot
 					end if
 #endif
 				else 
+#if PLATFORM_ID=WM2000
+					if param_wa=stg_get("WA",0) and stg_get("WP",0)=EN_STG_STATUS_OK and stg_sg("WP",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK then
+					else
+						wln_password=stg_get("WP",0)						 
+						stg_set("WS",0,str(param_ws))
+						stg_set("WA",0,param_wa)
+						stg_set("WP",0,stg_get("WP",0))
+					end if
+#else 
 					if param_wa=stg_get("WA",1) and stg_get("WP",0)=stg_get("WP",1) and stg_sg("WP",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK then
 					else
 						wln_password=stg_get("WP",0)
@@ -515,6 +525,8 @@ public sub boot
 						stg_set("WA",1,param_wa)
 						stg_set("WP",1,stg_get("WP",0))
 					end if
+#endif 
+		
 				end if
 #endif				
 			end select
@@ -740,10 +752,12 @@ public sub boot
 		end if
 	#endif
 
+	#if NET_AVAILABLE 
 	'don't have established Ethernet link by now? Assume there is no link
 	if net.linkstate=PL_NET_LINKSTAT_NOLINK then
 		ethernet_link_state_change(PL_NET_LINKSTAT_NOLINK)
 	end if
+	#endif 
 
 	pat_canint=NO 'this way the pattern below will not be screwed up
 	pat.channel=0
@@ -758,7 +772,11 @@ public sub boot
 	#endif
 	
 	#if BEEP_AVAILABLE
+	#if PLATFORM_ID <> WM2000
 		beep.divider=BEEP_DIVIDER
+	#else 
+		beep.frequency = 4000
+	#endif 
 		beep.play(BEEP_SHORT,PL_BEEP_CANINT)
 	#endif
 	

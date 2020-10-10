@@ -227,7 +227,9 @@ public sub net_cmd_proc(byref s as string(MAX_NET_CMD_LEN), cmd_mode as cmd_mode
 
 	case "X": 'echo command (device info) -----------------------
 		if sock.currentinterface=PL_SOCK_INTERFACE_NET then
+#if NET_AVAILABLE		
 			reply_str=net.mac
+#endif 
 		else
 			#if WLN_AVAILABLE
 				reply_str=wln.mac
@@ -399,7 +401,9 @@ public sub net_cmd_proc(byref s as string(MAX_NET_CMD_LEN), cmd_mode as cmd_mode
 		s2=mid(s,2,pos-2)
 		
 		if sock.currentinterface=PL_SOCK_INTERFACE_NET then
+			#if NET_AVAILABLE 
 			if ddval(s2)<>ddval(net.mac) then goto reply_null
+			#endif
 		else
 			#if WLN_AVAILABLE
 				if ddval(s2)<>ddval(wln.mac) then goto reply_null
@@ -479,7 +483,9 @@ public sub net_cmd_proc(byref s as string(MAX_NET_CMD_LEN), cmd_mode as cmd_mode
 		net_cmd_bcast_sel=NO
 		reply_str=right(s,len(s)-1)
 		if sock.currentinterface=PL_SOCK_INTERFACE_NET then
+			#if NET_AVAILABLE 
 			if ddval(reply_str)<>ddval(net.mac) then goto reply_null
+			#endif 
 		else
 			#if WLN_AVAILABLE
 				if ddval(reply_str)<>ddval(wln.mac) then goto reply_null
@@ -635,7 +641,7 @@ d1:			if x>=num_sdf then goto reply_err
 			case 6:
 
 				reply_str=reply_str+"<tr><td>Baudrate</td><td>"
-				
+#if PLATFORM_ID <> WM2000				
 				if ser.baudrate<=ser.div9600 then
 					i=ser.div9600/ser.baudrate
 					select case i
@@ -673,6 +679,34 @@ d1:			if x>=num_sdf then goto reply_err
 						s2="28800bps"
 					end select
 				end if
+#else 
+			select case ser.baudrate
+			case PL_SER_BAUD_300:
+				s2="300bps"
+			case PL_SER_BAUD_1200:
+				s2="1200bps"
+			case PL_SER_BAUD_2400:
+				s2="2400bps"
+			case PL_SER_BAUD_4800:
+				s2="4800bps"
+			case PL_SER_BAUD_9600:
+				s2="9600bps"
+			case PL_SER_BAUD_19200:
+				s2="19200bps"
+			case PL_SER_BAUD_38400:
+				s2="38400bps"
+			case PL_SER_BAUD_57600:
+				s2="57600bps"
+			case PL_SER_BAUD_115200:
+				s2="115200bps"
+			case PL_SER_BAUD_230400:
+				s2="230400bps"
+			case PL_SER_BAUD_460800:
+				s2="460800bps"
+			case PL_SER_BAUD_921600:
+				s2="921600bps"
+			end select	 
+#endif 				
 				reply_str=reply_str+s2
 				reply_str=reply_str+"</td></tr>"
 
@@ -1355,7 +1389,11 @@ d1:			if x>=num_sdf then goto reply_err
 		#endif
 
 		case "C":
+	#if NET_AVAILABLE 		
 			reply_str=net.mac
+	#else 
+			reply_str=wln.mac
+	#endif 
 			goto reply_ok_have_data
 
 		#if PLATFORM_ID=DS1101W or PLATFORM_ID=DS1102W or PLATFORM_ID=DS1101N or PLATFORM_ID=DS1102N
@@ -1443,10 +1481,12 @@ add_seq_num:
 		sock.inconenabledmaster=NO
 		close_interface_sockets(sock.currentinterface)
 		if sock.currentinterface=PL_SOCK_INTERFACE_NET then
+			#if NET_AVAILABLE 
 			net.ip=validate_ip(stg_get("IP",0))
 			#if SUPPORTS_DISPLAY
 				lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
 			#endif
+			#endif 
 		else
 			#if WLN_AVAILABLE
 				wln.ip=validate_ip(stg_get("WI",0))
@@ -1696,7 +1736,11 @@ public sub ser_cmd_proc(byref cmd_str as string,cmd_source_ser_port as word,erro
 				while sock.statesimple<>PL_SSTS_CLOSED
 				wend
 			next f
+			#if NET_AVAILABLE 
 			net.ip=right(cmd_str,len(cmd_str)-3)
+			#else 
+			wln.ip=right(cmd_str,len(cmd_str)-3)
+			#endif 
 			sock.inconenabledmaster=YES
 			goto reply_ok
 

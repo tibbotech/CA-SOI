@@ -1,12 +1,12 @@
 [project]
 version=1
-platform=TPP3W(G2)
-src_lib_ver=2_01_03
+platform=WM2000
+src_lib_ver=2_01_04
 name=soi_application-4_33
 output=soi_application-4_33.tpc
-debug=off
+debug=on
 defines= /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_FD=FD_ENABLED /dOBJECT_KP=KP_ENABLED /dOBJECT_WLN=WLN_ENABLED
-transport=udp_winpcap
+transport=serial
 [address1]
 platform=DS1100
 transport=udp_winpcap
@@ -14,7 +14,7 @@ address=0.36.119.80.227.61
 [address2]
 platform=DS1101W
 transport=udp_winpcap
-address=0.0.0.134.127.128
+address=0.1.2.3.8.201
 [address3]
 platform=DS1102W
 transport=udp_winpcap
@@ -143,6 +143,14 @@ address=0.0.0.134.127.128
 platform=EM510W
 transport=udp_winpcap
 address=0.101.202.36.40.201
+[address35]
+platform=WM2000
+transport=udp_winpcap
+address=156.101.249.54.101.44
+[address36]
+platform=WM2000
+transport=serial
+address=COM30:921600
 [file1]
 path=main.tbs
 type=basic
@@ -695,5 +703,26 @@ path=html_config_wifi_em510w.txt
 type=text
 format=65001
 condition=PLATFORM_ID = EM510W
+locked=no
+location=project
+[file71]
+path=settings_1p_wm2000.xtxt
+type=xtext
+format=STG_lib_configurator
+condition=
+locked=no
+location=project
+[file72]
+path=dsman_1p_wm2000.txt
+type=text
+format=65001
+condition=
+locked=no
+location=project
+[file73]
+path=device_wm2000.tbs
+type=basic
+format=65001
+condition=PLATFORM_ID = WM2000
 locked=no
 location=project

@@ -1,10 +1,11 @@
 'SUPPORTED PLATFORMS & RELATED CAPABILITIES--------------------------
 
-#define DHCP_DEBUG_PRINT 0
-#define DEV_DEBUG_PRINT 0
-#define WLN_DEBUG_PRINT 0
-
-#if PLATFORM_ID=EM1000N	or PLATFORM_ID=EM1001N or PLATFORM_ID=EM1202N or PLATFORM_ID=EM1206N or PLATFORM_ID=TPP2N or PLATFORM_ID=TPP3N or PLATFORM_ID=DS1101N or PLATFORM_ID=DS1102N or PLATFORM_ID=EM510W
+#define DHCP_DEBUG_PRINT 1
+#define DEV_DEBUG_PRINT 1
+#define WLN_DEBUG_PRINT 1
+#define SUPPORTS_CELL 0
+#define STG_DEBUG_PRINT 1
+#if PLATFORM_ID=EM1000N	or PLATFORM_ID=EM1001N or PLATFORM_ID=EM1202N or PLATFORM_ID=EM1206N or PLATFORM_ID=TPP2N or PLATFORM_ID=TPP3N or PLATFORM_ID=DS1101N or PLATFORM_ID=DS1102N or PLATFORM_ID=EM510W or PLATFORM_ID=WM2000
 #define GA1000 0
 #else 
 #define GA1000 1
@@ -220,6 +221,19 @@
 	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
 	#define WLN_WPA 1
 	#define SUPPORTS_DISPLAY 0
+#elif PLATFORM_ID=WM2000
+	#define SUPPORTS_422_485_4 0
+	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_OVER_115200 1
+	#define PER_CHANNEL_STATUS_INDICATION 0
+	#define SIGNAL_STRENGTH_INDICATION 0
+	#define DEVICE_PORT_SCHEME PORT_SCHEME_1P
+	#define POWER_ON_PIN9 0
+	#define SUPPORTS_GPRS 0
+	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
+	#define WLN_WPA 1
+	#define SUPPORTS_DISPLAY 0
+	
 #else
 	  XXXX 'intentional garbage: currently selected platform is not supported!
 #endif
@@ -257,7 +271,11 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 	#if PLATFORM_ID = EM510W
 		#define DSMAN_DESCRIPTOR_FILE "dsman_1p_em510.txt"	'SDF file used by the DS Manager
 	#else 
-		#define DSMAN_DESCRIPTOR_FILE "dsman_1p.txt"	'SDF file used by the DS Manager
+		#if PLATFORM_ID = WM2000
+			#define DSMAN_DESCRIPTOR_FILE "dsman_1p_wm2000.txt"	'SDF file used by the DS Manager
+		#else 
+			#define DSMAN_DESCRIPTOR_FILE "dsman_1p.txt"	'SDF file used by the DS Manager
+		#endif 
 	#endif 
 #endif
 
@@ -396,13 +414,19 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 	const SER0_RTS=PL_IO_NUM_2			'must be from pl_io_num range
 	const SER0_DSR=PL_IO_NUM_1_INT1		'must be from pl_io_num range
 	const SER0_DTR=PL_IO_NUM_3			'must be from pl_io_num range
-
+S
 #elif PLATFORM_ID=DS1100
 	const BASE_OF_INT_LINES=PL_IO_NUM_0_CTS_INT0
 	const SER0_CTS_INT=PL_IO_NUM_0_CTS_INT0			'must be from pl_int_num range (NOT pl_io_num)
 	const SER0_RTS=PL_IO_NUM_2_RTS					'must be from pl_io_num range
 	const SER0_DSR=PL_IO_NUM_1_DSR_INT1				'must be from pl_io_num range
 	const SER0_DTR=PL_IO_NUM_3_DTR					'must be from pl_io_num range
+#elif PLATFORM_ID=WM2000
+	const BASE_OF_INT_LINES=PL_INT_NUM_0
+	const SER0_CTS_INT=PL_INT_NUM_0				'must be from pl_int_num range (NOT pl_io_num)
+	const SER0_RTS=PL_IO_NUM_4					'must be from pl_io_num range
+	const SER0_DSR=PL_IO_NUM_5					'must be from pl_io_num range
+	const SER0_DTR=PL_IO_NUM_3_INT1					'must be from pl_io_num range
 #endif
 
 'DEFINES-------------------------------------------------------------
@@ -424,6 +448,8 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 #else
 	#if PLATFORM_ID = EM510W
 		includepp "settings_1p_em510.xtxt"
+	#elif PLATFORM_ID = WM2000
+		includepp "settings_1p_wm2000.xtxt"
 	#else 
 		includepp "settings_1p.xtxt"
 	#endif 
@@ -485,7 +511,9 @@ declare num_wln_failures as byte
 declare gprs_already_started,wln_already_started as no_yes
 declare wln_error,gprs_error as no_yes
 declare html_print_setting_flags_settings_page, html_print_setting_flags_ports_page as word
+#if PLATFORM_ID <> WM2000
 declare sub ethernet_link_state_change(new_state as pl_net_linkstate)
+#endif
 declare sub dev_debugprint(byref print_data as string)
 declare sub enable_comm_channels(pages_to_distribute as byte)
 declare sub set_comm_channel_buffers(channel_num as byte, num_buffers as byte, ser_port_in_prog_mode as no_yes) '<<<<<<<<<<<<<<<<<<<<<<<<<<<<

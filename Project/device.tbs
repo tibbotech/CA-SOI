@@ -65,6 +65,7 @@ public dim param_si(MAX_NUM_SERIAL_PORTS) as byte
 	public dim param_ws as pl_wln_security_modes
 #endif
 
+#if NET_AVAILABLE
 '====================================================================
 sub ethernet_link_state_change(new_state as pl_net_linkstate)
 	if new_state=PL_NET_LINKSTAT_NOLINK then
@@ -162,6 +163,7 @@ sub ethernet_link_state_change(new_state as pl_net_linkstate)
 		change_current_interface(PL_SOCK_INTERFACE_NET)
 	end if
 end sub
+#endif 
 
 '--------------------------------------------------------------------
 #if WLN_AVAILABLE
@@ -303,6 +305,8 @@ end sub
 '--------------------------------------------------------------------
 sub callback_dhcp_ok(renew as no_yes, interface as pl_sock_interfaces, byref ip as string, byref gateway_ip as string, byref netmask as string, lease_time as dword)
 
+	#if NET_AVAILABLE 
+	
 	if interface=PL_SOCK_INTERFACE_NET then
 		if renew=YES and net.ip<>ip then
 			'this is a lease renewal and the DHCP server has issues new IP
@@ -339,7 +343,8 @@ sub callback_dhcp_ok(renew as no_yes, interface as pl_sock_interfaces, byref ip 
 			lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
 		#endif
 	end if
-
+	#endif 
+	
 	#if WLN_AVAILABLE	
 		if interface=PL_SOCK_INTERFACE_WLN then
 			if renew=YES and wln.ip<>ip then
@@ -389,6 +394,7 @@ sub callback_dhcp_failure(interface as pl_sock_interfaces,failure_code as en_dhc
 	sock.inconenabledmaster=NO
 	close_interface_sockets(interface)
 	if interface=PL_SOCK_INTERFACE_NET then
+	#if NET_AVAILABLE 
 		#if DEV_DEBUG_PRINT
 			dev_debugprint("Ethernet DHCP FAILED")
 		#endif
@@ -399,6 +405,7 @@ sub callback_dhcp_failure(interface as pl_sock_interfaces,failure_code as en_dhc
 		#if SUPPORTS_DISPLAY
 			lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
 		#endif
+	#endif 
 	else
 		#if WLN_AVAILABLE	
 			#if DEV_DEBUG_PRINT
@@ -1059,7 +1066,7 @@ next_setting:
 end function
 
 '--------------------------------------------------------------------
-#if SIGNAL_STRENGTH_INDICATION=1
+#if SIGNAL_STRENGTH_INDICATION=1 and PLATFORM_ID <> WM2000
 sub signal_strength_indication_init()
 	dim f as byte
 	
@@ -1215,6 +1222,7 @@ public function device_spec_arg_sg(byref setting_name as string, byref setting_v
 	device_spec_arg_sg = EN_STG_STATUS_OK
 end function
 
+#if PLATFORM_ID<>WM2000
 '--------------------------------------------------------------------
 function baudrate_set(br_mode as br_modes) as ok_ng
 'Set the UART according to the supplied baudrate "number"
@@ -1299,6 +1307,7 @@ function baudrate_get() as br_modes
 	end if
 	
 end function
+#endif 
 
 '--------------------------------------------------------------------
 function validate_ip(byref ip as string) as string

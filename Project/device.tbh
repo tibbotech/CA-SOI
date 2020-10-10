@@ -82,7 +82,8 @@ enum br_modes
 	BR_600,
 	BR_28800,
 	BR_230400,
-	BR_460800
+	BR_460800,
+	BR_921600
 end enum
 
 enum pr_modes
@@ -217,3 +218,4 @@ declare sub add_serial_channel_to_login_data(channel_num as byte)
 declare sub remove_serial_channel_from_login_data(channel_num as byte)
 declare function check_if_serial_channel_is_in_login_state(channel_num as byte) as no_yes
 declare function test_io_pair(line_out as pl_io_num, line_in as pl_io_num) as ok_ng
+declare sub change_current_interface(new_interface as pl_sock_interfaces)
