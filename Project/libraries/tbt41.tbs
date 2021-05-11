@@ -1,0 +1,377 @@
+'***********************************************************************************************************
+'			Tibbit #41 (8-bit port extender, based on MCP23008)
+'***********************************************************************************************************
+
+include "global.tbh"
+
+const TBT41_INIT_SIGNATURE=&h1003
+const TBT41_STAMP="TBT41> "
+const TBT41_CR_LF=chr(13)+chr(10)
+
+const TBT41_WRITE_ADDR=&h40
+const TBT41_READ_CODE=&h41
+
+enum tbt41_regs
+	TBT41_ADDR_IODIR=&h00,
+	TBT41_ADDR_IPOL=&h01,
+	TBT41_ADDR_GPINTEN=&h02,
+	TBT41_ADDR_DEFVAL=&h03,
+	TBT41_ADDR_INTCON=&h04,
+	TBT41_ADDR_IOCON=&h05,
+	TBT41_ADDR_GPPU=&h06,
+	TBT41_ADDR_INTF=&h07,
+	TBT41_ADDR_INTCAP=&h08,
+	TBT41_ADDR_GPIO=&h09,
+	TBT41_ADDR_OLAT=&h0A
+end enum
+
+enum tbt41_clr_set
+	TBT41_BIT_CLEAR,
+	TBT41_BIT_SET
+end enum
+
+declare sub tbt41_reg_write(reg as tbt41_regs,data as byte)
+declare function tbt41_reg_read(addr as tbt41_regs)as byte
+
+declare sub tbt41_bit_access(byref data as byte,bit as byte,act as tbt41_clr_set)
+
+#if TBT41_DEBUG_PRINT=1
+declare sub tbt41_debug_print(data as string)
+#endif
+
+'--------------------------------------------------------------------
+dim tbt41_init_flag as word
+
+function tbt41_init(byref signature as string, use_ssi as no_yes, pin_clk as byte, pin_data as byte, byref channel as byte) as tbt41_errcheck
+'Call this function to initialize the Tibbit.
+'Use_ssi argument specifies whether you want to communicate with this Tibbit using the SSI channel running in the I2C mode (YES), or
+'go for direct I/O manipulation a.k.a. bit-banging (NO).
+'Note that there is a limited number of SSI channels so if you set use_ssi=YES this function may return TBT41_NO_SSI_AVAILABLE, meaning that
+'there are no free SSI channels left. This doesn't mean failure. Rather, it means that comms will proceed in bit banging mood.
+	
+	tbt41_init=TBT41_OK
+	tbt41_init_flag=TBT41_INIT_SIGNATURE
+
+	#if TBT41_DEBUG_PRINT=1
+		tbt41_debug_print("++++++++++")
+	#endif
+
+	channel=si2c_register(signature,pin_data,pin_clk,use_ssi)
+
+	#if TBT41_DEBUG_PRINT=1
+		tbt41_debug_print("i2c num:"+str(channel))
+	#endif
+
+	if channel <4 then
+		ssi.channel=channel
+		ssi.enabled=NO
+		#IF PLATFORM_ID=TPP2WG2 or PLATFORM_ID=TPP3WG2
+			ssi.baudrate=5
+		#elif PLATFORM_ID=TPP2W or PLATFORM_ID=TPP3W
+			ssi.baudrate=1
+		#endif
+		ssi.clkmap=pin_clk
+		ssi.dimap=pin_data
+		ssi.domap=pin_data
+		ssi.zmode=PL_SSI_ZMODE_ENABLED_ON_ZERO
+		ssi.direction=PL_SSI_DIRECTION_LEFT
+		ssi.mode=PL_SSI_MODE_2
+		ssi.enabled=YES
+		io.num=pin_clk
+		io.enabled=YES
+		io.state=HIGH
+	else
+		if use_ssi=YES then
+			tbt41_init=TBT41_NO_SSI_AVAILABLE
+		end if
+	end if
+
+#if TBT41_DEBUG_PRINT=1
+	tbt41_debug_print("----------")
+#endif
+
+	dim value as byte
+	si2c_get(channel)
+	'Pins are configured as an input.
+	tbt41_reg_write(TBT41_ADDR_IODIR,&hFF)
+	if tbt41_reg_read(TBT41_ADDR_IODIR)<>&hFF then
+		tbt41_init=TBT41_SELF_TEST_FAIL
+	end if
+
+	tbt41_reg_write(TBT41_ADDR_IPOL,&h0)
+	value=tbt41_reg_read(TBT41_ADDR_IPOL)
+	if value<>&h0 then
+		tbt41_init=TBT41_SELF_TEST_FAIL
+	end if
+
+	dim r as tbt41_regs
+	for r=TBT41_ADDR_GPINTEN to TBT41_ADDR_OLAT
+		tbt41_reg_write(r,&h0)
+	next r
+end function
+
+function tbt41_line_out_enable(num as ext_line_name,en as no_yes, channel as byte)as ok_ng
+'Configures the specified line (num) to be an input (en=NO) or outpur (en=YES).
+'The function will return NG if the execution fails.
+	
+	dim value as byte
+	tbt41_line_out_enable=NG
+	if tbt41_init_flag<>TBT41_INIT_SIGNATURE then
+	#if TBT41_DEBUG_PRINT=1
+		tbt41_debug_print("The lib is not initialized, call tbt41_init() first")
+	#endif
+		exit function
+	end if
+	si2c_get(channel)
+	value=tbt41_reg_read(TBT41_ADDR_IODIR)
+	tbt41_bit_access(value,num,en)
+	tbt41_reg_write(TBT41_ADDR_IODIR,value)
+	tbt41_line_out_enable=OK
+end function
+
+function tbt41_line_pup_enable(num as ext_line_name, en as no_yes, channel as byte)as ok_ng
+'If en=YES and the corresponding line (num) is configured for input, then this line will be pulled up with a 100 KOhm resistor.
+'The function will return NG if the execution fails.
+	
+	dim value as byte
+	tbt41_line_pup_enable=NG
+	if tbt41_init_flag<>TBT41_INIT_SIGNATURE then
+	#if TBT41_DEBUG_PRINT=1
+		tbt41_debug_print("The lib is not initialized, call tbt41_init() first")
+	#endif
+		exit function
+	end if
+	si2c_get(channel)
+	value=tbt41_reg_read(TBT41_ADDR_GPPU)
+	tbt41_bit_access(value,num,en)
+	tbt41_reg_write(TBT41_ADDR_GPPU,value)
+	tbt41_line_pup_enable=OK
+end function
+
+function tbt41_line_set(num as ext_line_name,state as low_high, channel as byte)as ok_ng
+'Sets the output state of the specified line (num). For this to work the line has to be configured as output.
+'The function will return NG if the execution fails.
+	
+	dim value as byte
+	tbt41_line_set=NG
+	if tbt41_init_flag<>TBT41_INIT_SIGNATURE then
+	#if TBT41_DEBUG_PRINT=1
+		tbt41_debug_print("The lib is not initialized, call tbt41_init() first")
+	#endif
+		exit function
+	end if
+	si2c_get(channel)
+	value=tbt41_reg_read(TBT41_ADDR_GPIO)
+	if state=LOW then
+		tbt41_bit_access(value,num,YES)
+	else
+		tbt41_bit_access(value,num,NO)
+	end if
+	tbt41_reg_write(TBT41_ADDR_GPIO,value)
+	tbt41_line_set=OK
+end function
+
+function tbt41_line_get(num as ext_line_name, byref state as low_high, channel as byte)as ok_ng
+'Reads the state of the specified line (num). The value will be returned in the state variable.
+'The function will return NG if the execution fails.
+	
+	dim value as byte
+	tbt41_line_get=NG
+	if tbt41_init_flag<>TBT41_INIT_SIGNATURE then
+	#if TBT41_DEBUG_PRINT=1
+		tbt41_debug_print("The lib is not initialized, call tbt41_init() first")
+	#endif
+		exit function
+	end if
+	si2c_get(channel)
+	value=tbt41_reg_read(TBT41_ADDR_GPIO)
+	dim tmp as byte
+	select case num
+	case 7:
+		tmp=&h80
+
+	case 6:
+		tmp=&h40
+		
+	case 5:
+		tmp=&h20
+
+	case 4:
+		tmp=&h10
+
+	case 3:
+		tmp=&h08
+
+	case 2:
+		tmp=&h04
+
+	case 1:
+		tmp=&h02
+
+	case 0:
+		tmp=&h01
+
+	end select
+
+	if value and tmp then
+		state=HIGH
+	else
+		state=LOW
+	end if
+	tbt41_line_get=OK
+end function
+
+function tbt41_port_config_set(dir as byte,pullup as byte, channel as byte)as ok_ng
+'Sets the direction and pull-up status for all port lines simultaneously.
+'Each bit of dir argument  is responsible for the direction of one line. The line will act as an input when the bit is 1, and output when the bit is 0.
+'Each bit of pullup argument is responsible for enabling the pull-up resistor for the corresponding line. The pull-up resistor is enabled when the corresponding bit is at 1.
+'The function will return NG if the execution fails.
+	
+	tbt41_port_config_set=NG
+	if tbt41_init_flag<>TBT41_INIT_SIGNATURE then
+	#if TBT41_DEBUG_PRINT=1
+		tbt41_debug_print("The lib is not initialized, call tbt41_init() first")
+	#endif
+		exit function
+	end if
+	si2c_get(channel)
+	tbt41_reg_write(TBT41_ADDR_IODIR,dir)
+	tbt41_reg_write(TBT41_ADDR_GPPU,pullup)
+	tbt41_port_config_set=OK
+end function
+
+function tbt41_port_config_get(byref dir as byte,byref pullup as byte, channel as byte)as ok_ng
+'Reads the direction (input/output) and pull-up resistor configuration data.
+'Each bit of dir and pullup reflects the programming of the corresponding line. Current configuration will be returned through dir and pullup arguments.
+'Dir argument: a line is configured as an output when its corresponding bit is at 1, input -- when the bit is at 0.
+'Pullup argument: a line has its pull-up resistor enabled when the corresponding bit is at 1.
+'The function will return NG if the execution fails.
+	
+	tbt41_port_config_get=NG
+	if tbt41_init_flag<>TBT41_INIT_SIGNATURE then
+	#if TBT41_DEBUG_PRINT=1
+		tbt41_debug_print("The lib is not initialized, call tbt41_init() first")
+	#endif
+		exit function
+	end if
+	si2c_get(channel)
+	pullup=tbt41_reg_read(TBT41_ADDR_GPPU)
+	dir=tbt41_reg_read(TBT41_ADDR_IODIR)
+	tbt41_port_config_get=OK
+end function
+
+function tbt41_port_set(data as byte, channel as byte) as ok_ng
+'Sets the output states of all port lines. Only lines configured as outputs will be affected.
+'The function will return NG if the execution fails.
+	
+	tbt41_port_set=NG
+	if tbt41_init_flag<>TBT41_INIT_SIGNATURE then
+	#if TBT41_DEBUG_PRINT=1
+		tbt41_debug_print("The lib is not initialized, call tbt41_init() first")
+	#endif
+		exit function
+	end if
+	si2c_get(channel)
+	tbt41_reg_write(TBT41_ADDR_GPIO,data)
+	tbt41_port_set=OK
+end function
+
+function tbt41_port_get(byref data as byte, channel as byte)as ok_ng
+'Reads the current state of all port lines. Port state is returned through the data argument.
+'The function will return NG if the execution fails.	
+	
+	tbt41_port_get=NG
+	if tbt41_init_flag<>TBT41_INIT_SIGNATURE then
+	#if TBT41_DEBUG_PRINT=1
+		tbt41_debug_print("The lib is not initialized, call tbt41_init() first")
+	#endif
+		exit function
+	end if
+	si2c_get(channel)
+	data=tbt41_reg_read(TBT41_ADDR_GPIO)
+	tbt41_port_get=OK
+end function
+
+sub tbt41_reg_write(reg as tbt41_regs,data as byte)
+	si2c_start()
+	si2c_write(TBT41_WRITE_ADDR)
+	si2c_write(reg)
+	si2c_write(data)
+	si2c_stop()
+end sub
+
+function tbt41_reg_read(addr as tbt41_regs)as byte
+	si2c_start()
+	si2c_write(TBT41_WRITE_ADDR)
+	si2c_write(addr)
+	si2c_start()
+	si2c_write(TBT41_READ_CODE)
+	tbt41_reg_read=si2c_read(false)
+	si2c_stop()
+end function
+
+sub tbt41_bit_access(byref data as byte,bit as byte,act as tbt41_clr_set)
+	select case bit
+	case 7:
+		if act=TBT41_BIT_CLEAR then
+			data=data or &h80
+		else
+			data=data and &h7F
+		end if
+
+	case 6:
+		if act=TBT41_BIT_CLEAR then
+			data=data or &h40
+		else
+			data=data and &hBF
+		end if
+
+	case 5:
+		if act=TBT41_BIT_CLEAR then
+			data=data or &h20
+		else
+			data=data and &hDF
+		end if
+
+	case 4:
+		if act=TBT41_BIT_CLEAR then
+			data=data or &h10
+		else
+			data=data and &hEF
+		end if
+
+	case 3:
+		if act=TBT41_BIT_CLEAR then
+			data=data or &h08
+		else
+			data=data and &hF7
+		end if
+
+	case 2:
+		if act=TBT41_BIT_CLEAR then
+			data=data or &h04
+		else
+			data=data and &hFB
+		end if
+
+	case 1:
+		if act=TBT41_BIT_CLEAR then
+			data=data or &h02
+		else
+			data=data and &hFD
+		end if
+
+	case 0:
+		if act=TBT41_BIT_CLEAR then
+			data=data or &h01
+		else
+			data=data and &hFE
+		end if	
+	end select
+end sub
+
+#if TBT41_DEBUG_PRINT=1
+sub tbt41_debug_print(data as string)
+	sys.debugprint(TBT41_STAMP+data+TBT41_CR_LF)
+end sub
+#endif

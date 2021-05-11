@@ -162,7 +162,12 @@ public sub boot
 		ser.num=0
 		ser.ctsmap=SER0_CTS_INT
 		ser.rtsmap=SER0_RTS
-		cts_mapping(0)=BASE_OF_INT_LINES+SER0_CTS_INT 
+#if PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+			cts_mapping(0)=L0
+#else 
+			cts_mapping(0)=BASE_OF_INT_LINES+SER0_CTS_INT 
+#endif 
+		
 		dsr_mapping(0)=SER0_DSR
 		dtr_mapping(0)=SER0_DTR
 		num_ports_in_use=1
@@ -380,6 +385,16 @@ public sub boot
 	#endif
 
 	'----- hardware mode of serial ports -----
+	#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_1P and (PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102)
+		'this is for WS1102
+		
+		tbt41_line_set( SER0_HDFD,  HIGH , S1_CHANNEL)
+		tbt41_line_out_enable( SER0_HDFD, YES , S1_CHANNEL)
+		
+		tbt41_line_set( SER0_RSMD, LOW , S1_CHANNEL)
+		tbt41_line_out_enable( SER0_RSMD, YES , S1_CHANNEL)
+		 
+	#endif
 	#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_4C
 		'this is for DS1102
 		io.num=SER0_HDFD
@@ -466,7 +481,11 @@ public sub boot
 	#if WLN_AVAILABLE
 		'Wi-Fi parameters and DHCP
 		wln_error=NO
+	#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
+		param_we=WE_ENABLED_PERMANENT
+	#else 
 		param_we=stg_get("WE",0)
+	#endif
 		if param_we<>WE_DISABLED then
 			num_wln_failures=0
 			wln.ip=validate_ip(stg_get("WI",0))
@@ -475,14 +494,20 @@ public sub boot
 			param_wd=val(stg_get("WD",0))
 			if param_wd<>NO then
 				ip_configured(PL_SOCK_INTERFACE_WLN)=NO
+			#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 				dhcp_start(PL_SOCK_INTERFACE_WLN,wln.ip,"")
+			#endif 
 				dhcp_used=YES
 			else
 				ip_configured(PL_SOCK_INTERFACE_WLN)=YES
 			end if
 			param_wa=stg_get("WA",0)
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 			param_ws=val(stg_get("WS",0))
 			wln_init()
+#else  
+			param_ws = WLN_SECURITY_MODE_WPA2    'WS1101 uses autoconnect. 
+#endif			
 			select case param_ws
 			case WLN_SECURITY_MODE_DISABLED:
 				wln_password=""
@@ -508,7 +533,7 @@ public sub boot
 					end if
 #endif
 				else 
-#if PLATFORM_ID=WM2000
+#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
 					if param_wa=stg_get("WA",0) and stg_get("WP",0)=EN_STG_STATUS_OK and stg_sg("WP",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK then
 					else
 						wln_password=stg_get("WP",0)						 
@@ -535,7 +560,9 @@ public sub boot
 				#if DEV_DEBUG_PRINT
 					dev_debugprint("Start Wi-Fi")
 				#endif
-				wln_init() 
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
+					wln_init()
+
 				if wln.getmoduletype=PL_WLN_MODULE_TYPE_GA1000 then
 					wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)
 				else 
@@ -551,12 +578,15 @@ public sub boot
 			else
 				wln_stop()
 				wln_already_started=NO
+#else 
+			wln_already_started=YES
+#endif 
 			end if
 		end if
-	#else
+#else 
 		wln_error=NO
 		param_we=WE_DISABLED
-	#endif
+#endif
 
 
 	'GPRS parameters
@@ -723,10 +753,12 @@ public sub boot
 	'this allocates channel buffers, puts channels in normal mode
 	x=0
 	if dhcp_used=YES then
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		x=x+val(dhcp_get_info(DHCP_INFO_ELEMENT_REQUIRED_BUFFERS,""))
+#endif 	
 	end if
 	
-	#if WLN_AVAILABLE	
+	#if WLN_AVAILABLE and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		if param_we<>WE_DISABLED and wln_already_started=NO then  
 			x=x+val(wln_get_info(WLN_INFO_ELEMENT_REQUIRED_BUFFERS,str(param_ws)))
 		end if
@@ -772,10 +804,10 @@ public sub boot
 	#endif
 	
 	#if BEEP_AVAILABLE
-	#if PLATFORM_ID <> WM2000
+	#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		beep.divider=BEEP_DIVIDER
 	#else 
-		beep.frequency = 4000
+		beep.frequency = 2750
 	#endif 
 		beep.play(BEEP_SHORT,PL_BEEP_CANINT)
 	#endif
@@ -784,6 +816,57 @@ public sub boot
 		lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_AGGRESSIVE,LCD_PRINT_ELEMENT_ALL)
 	#endif
 	
+	
+#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
+	declare net_linkstate as byte
+	net_linkstate=0
+	x = NO
+	
+	
+	if wln.autoconnect <> YES then
+		wln.autoconnect = YES
+		x = YES
+	end if
+	
+	if wln.autoconnectssid <> param_wa then
+		stg_set("WA",0, wln.autoconnectssid) 
+		x = YES
+	end if
+	
+	if wln.autoconnectpassword <> wln_password then
+		stg_set("WP",0, wln.autoconnectpassword) 
+		x = YES
+	end if
+	
+	if wln.autodhcp <> param_wd then
+		stg_set("WD",0, wln.autodhcp) 
+		x= YES
+	end if 
+	
+	if x = yes then 
+		sys.reboot
+	end if 
+	
+	'Try to replace with Wi-Fi
+ 	if wln_already_started=NO then
+		#if DEV_DEBUG_PRINT
+			dev_debugprint("Start Wi-Fi")
+		#endif
+		num_wln_failures=0					
+		wln_error=NO
+		wln_already_started=YES
+		
+	end if
+	
+	interface_ready(PL_SOCK_INTERFACE_WLN)=YES
+	change_current_interface(PL_SOCK_INTERFACE_WLN)
+	 
+	
+	'255 means Wi-Fi already fail and then we should allow GPRS to start (if enabled)
+	if num_wln_failures<>255 and wln_error=NO then
+		exit sub 
+	end if
+#endif 
 	
 	exit sub 'boot completed!-----
  

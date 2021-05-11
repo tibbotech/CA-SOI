@@ -1,11 +1,12 @@
 'SUPPORTED PLATFORMS & RELATED CAPABILITIES--------------------------
 
-#define DHCP_DEBUG_PRINT 1
-#define DEV_DEBUG_PRINT 1
-#define WLN_DEBUG_PRINT 1
+#define DHCP_DEBUG_PRINT 0
+#define DEV_DEBUG_PRINT 0
+#define WLN_DEBUG_PRINT 0
 #define SUPPORTS_CELL 0
-#define STG_DEBUG_PRINT 1
-#if PLATFORM_ID=EM1000N	or PLATFORM_ID=EM1001N or PLATFORM_ID=EM1202N or PLATFORM_ID=EM1206N or PLATFORM_ID=TPP2N or PLATFORM_ID=TPP3N or PLATFORM_ID=DS1101N or PLATFORM_ID=DS1102N or PLATFORM_ID=EM510W or PLATFORM_ID=WM2000
+#define STG_DEBUG_PRINT 0
+#define DSMAN_DEBUG_PRINT 0
+#if PLATFORM_ID=EM1000N	or PLATFORM_ID=EM1001N or PLATFORM_ID=EM1202N or PLATFORM_ID=EM1206N or PLATFORM_ID=TPP2N or PLATFORM_ID=TPP3N or PLATFORM_ID=DS1101N or PLATFORM_ID=DS1102N or PLATFORM_ID=EM510W or PLATFORM_ID=WM2000 or PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
 #define GA1000 0
 #else 
 #define GA1000 1
@@ -221,9 +222,9 @@
 	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
 	#define WLN_WPA 1
 	#define SUPPORTS_DISPLAY 0
-#elif PLATFORM_ID=WM2000
+#elif PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102    'WS1102
 	#define SUPPORTS_422_485_4 0
-	#define SUPPORTS_422_485_1 0
+	#define SUPPORTS_422_485_1 1
 	#define SUPPORTS_OVER_115200 1
 	#define PER_CHANNEL_STATUS_INDICATION 0
 	#define SIGNAL_STRENGTH_INDICATION 0
@@ -233,6 +234,8 @@
 	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
 	#define WLN_WPA 1
 	#define SUPPORTS_DISPLAY 0
+	const SER0_HDFD=5     		'EXT_LINE_6	'HIGH for full-duplex, LOW for half-duplex
+	const SER0_RSMD=6			'EXT_LINE_7	 HIGH for RS422/485, LOW for RS232
 	
 #else
 	  XXXX 'intentional garbage: currently selected platform is not supported!
@@ -271,8 +274,8 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 	#if PLATFORM_ID = EM510W
 		#define DSMAN_DESCRIPTOR_FILE "dsman_1p_em510.txt"	'SDF file used by the DS Manager
 	#else 
-		#if PLATFORM_ID = WM2000
-			#define DSMAN_DESCRIPTOR_FILE "dsman_1p_wm2000.txt"	'SDF file used by the DS Manager
+		#if PLATFORM_ID = WS1101 or PLATFORM_ID=WS1102
+			#define DSMAN_DESCRIPTOR_FILE "dsman_1p_ws110x.txt"	'SDF file used by the DS Manager
 		#else 
 			#define DSMAN_DESCRIPTOR_FILE "dsman_1p.txt"	'SDF file used by the DS Manager
 		#endif 
@@ -289,8 +292,12 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 
 #define HTML_SETTINGS_DEF "html_config_settings.txt"
 #define	HTML_GPRS_DEF "html_config_gprs.txt"
-#define	HTML_PORT_DEF "html_config_ports.txt"
 
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102   
+#define	HTML_PORT_DEF "html_config_ports.txt"
+#else 
+#define	HTML_PORT_DEF "html_config_ports_ws110x.txt"
+#endif
 
 #if WLN_AVAILABLE
 	#if PLATFORM_ID=EM500W or PLATFORM_ID=EM510W
@@ -421,12 +428,13 @@ S
 	const SER0_RTS=PL_IO_NUM_2_RTS					'must be from pl_io_num range
 	const SER0_DSR=PL_IO_NUM_1_DSR_INT1				'must be from pl_io_num range
 	const SER0_DTR=PL_IO_NUM_3_DTR					'must be from pl_io_num range
-#elif PLATFORM_ID=WM2000
+#elif PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102
 	const BASE_OF_INT_LINES=PL_INT_NUM_0
-	const SER0_CTS_INT=PL_INT_NUM_0				'must be from pl_int_num range (NOT pl_io_num)
-	const SER0_RTS=PL_IO_NUM_4					'must be from pl_io_num range
-	const SER0_DSR=PL_IO_NUM_5					'must be from pl_io_num range
-	const SER0_DTR=PL_IO_NUM_3_INT1					'must be from pl_io_num range
+	const SER0_CTS_INT=PL_INT_NUM_0					'must be from pl_int_num range (NOT pl_io_num)
+	const SER0_RTS=PL_IO_NUM_3_INT1					'must be from pl_io_num range
+	const SER0_DSR=PL_IO_NUM_7_RX1					'must be from pl_io_num range
+	const SER0_DTR=PL_IO_NUM_8_TX1					'must be from pl_io_num range
+	const L0 = PL_IO_NUM_2_INT0
 #endif
 
 'DEFINES-------------------------------------------------------------
@@ -448,8 +456,8 @@ S
 #else
 	#if PLATFORM_ID = EM510W
 		includepp "settings_1p_em510.xtxt"
-	#elif PLATFORM_ID = WM2000
-		includepp "settings_1p_wm2000.xtxt"
+	#elif PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102
+		includepp "settings_1p_ws110x.xtxt"
 	#else 
 		includepp "settings_1p.xtxt"
 	#endif 
@@ -468,6 +476,13 @@ include "error.tbh"
 include "html_common.tbh"
 include "dsman.tbh"
 include "lcd.tbh"
+
+#if PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102
+include "ssi\trunk\ssi.tbh"
+include "libraries\super_i2c.tbh"
+include "libraries\tbt41.tbh"
+declare  S1_CHANNEL as byte
+#endif 
 
 'DECLARATIONS--------------------------------------------------------
 
@@ -511,7 +526,7 @@ declare num_wln_failures as byte
 declare gprs_already_started,wln_already_started as no_yes
 declare wln_error,gprs_error as no_yes
 declare html_print_setting_flags_settings_page, html_print_setting_flags_ports_page as word
-#if PLATFORM_ID <> WM2000
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 declare sub ethernet_link_state_change(new_state as pl_net_linkstate)
 #endif
 declare sub dev_debugprint(byref print_data as string)

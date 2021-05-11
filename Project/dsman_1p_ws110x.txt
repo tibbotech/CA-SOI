@@ -1,16 +1,13 @@
 >>&b00000000	I=$GENERAL;D=General;T=GROUP
 >>&b00000000	I=ON;D=Owner name;T=STRING;C=EDIT;MAXLEN=8;F=R*
 >>&b00000000	I=DN;D=Device name;T=STRING;C=EDIT;MAXLEN=8;F=R*
-
-
->>&b00001000	I=$WI-FI;D=Wi-Fi;T=GROUP
->>&b00001000	I=WA;D=Access Point Name;T=STRING;C=EDIT;MAXLEN=22;F=R*
->>&b00001000	I=WS;D=Security;T=INT;C=STATIC;O=0- Disabled/0/1- WEP64/1/2- WEP128/2/3- WPA-PSK/3/4-WPA2-PSK/4
->>&b00001000	I=WP;E=1;D=Password;T=STRING;C=EDIT;MAXLEN=26;WS!=0?"e":"i";F=R*
->>&b00001000	I=WD;D=DHCP;T=INT;C=STATIC;F=R;O=0- Disabled/0/1- Enabled/1;
->>&b00001000	I=WI;D=IP-address;T=STRING;C=IPCTRL;F=R*
->>&b00001000	I=WG;D=Gateway IP-address;T=STRING;C=IPCTRL;F=R*
->>&b00001000	I=WN;D=Subnet mask;T=STRING;C=IPCTRL;F=R*
+>>&b00000000 	I=SI;D=Serial interface for channel 1;T=INT;C=STATIC;O=0- Full-duplex (RS232)/0/1- Half-duplex (RS485)/1/2- Full-duplex (RS422)/2
+>>&b00000000	I=WA;D=Access Point Name;T=STRING;C=EDIT;MAXLEN=22;F=R*
+>>&b00000000	I=WP;D=Password;T=STRING;C=EDIT;MAXLEN=26;WS!=0?"e":"i";F=R*
+>>&b00000000	I=WD;D=DHCP;T=INT;C=STATIC;F=R;O=0- Disabled/0/1- Enabled/1;
+>>&b00000000	I=WI;D=IP-address;T=STRING;C=IPCTRL;F=R*
+>>&b00000000	I=WG;D=Gateway IP-address;T=STRING;C=IPCTRL;F=R*
+>>&b00000000	I=WN;D=Subnet mask;T=STRING;C=IPCTRL;F=R*
 
 >>&b00000000	I=$CHANNEL1;D=Channel1;T=GROUP
 >>&b00000000	I=CT;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT>255?"Maximum timeout is 255 minutes":""
@@ -28,7 +25,7 @@
 >>&b00000000	I=FC;D=RTS/CTS flow control;T=INT;C=STATIC;O=0- Disabled OR remote /0/1- Local RTS-CTS/1/2- Local XON-XOFF/2
 >>&b00000000	I=DT;D=DTR mode;T=INT;C=STATIC;O=0- Idle or remote /0/1- Indicate connection status/1
 >>&b00000000	I=DS;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT==0?"e":"i"
->>&b00000000	I=BR;D=Baudrate;T=INT;C=STATIC;O=8-150bps/8/9-300bps/9/10-600bps/10/0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7
+>>&b00000000	I=BR;D=Baudrate;T=INT;C=STATIC;O=8-150bps/8/9-300bps/9/10-600bps/10/0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13/14-921600bps/14
 >>&b00000000	I=PR;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
 >>&b00000000	I=BB;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1
 >>&b00000000	I=MD;D=Max intercharacter delay;T=INT;C=EDIT/SPIN/0/1/1/10;V=MD>255?"Maximum intercharacter delay is 255":""

@@ -266,7 +266,7 @@ sub lcd_display_page(page as enum_lcd_pages, mode as enum_lcd_print_modes, eleme
 
 			if element=LCD_PRINT_ELEMENT_ALL or element=LCD_PRINT_ELEMENT_CH_OTF then
 				dim i as word
-#if PLATFORM_ID<>WM2000				
+#if PLATFORM_ID<>WS1101	and PLATFORM_ID <> WS1102			
 				if ser.baudrate<=ser.div9600 then
 					i=ser.div9600/ser.baudrate
 					select case i

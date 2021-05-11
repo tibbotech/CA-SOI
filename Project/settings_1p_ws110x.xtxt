@@ -20,7 +20,7 @@
 >>FC	E	B	1	0	2	A	0
 >>DT	E	B	1	0	1	A	0
 >>DS	E	B	1	0	1	A	0
->>BR	E	B	1	0	11	A	5
+>>BR	E	B	1	0	14	A	5
 >>PR	E	B	1	0	4	A	0
 >>BB	E	B	1	0	1	A	1
 >>MD	E	B	1	0	255	A	1
@@ -35,10 +35,10 @@
 >>WS	E	B	1	0	4	I	0
 >>WP	E	S	1	0	26	I	^
 >>WD	E	B	1	0	1	I	0
->>WI	E	D	1	4	4	I	1.0.0.1
+>>WI	E	D	1	4	4	I	192.168.1.40
 >>WG	E	D	1	4	4	I	1.0.0.1
 >>WN	E	D	1	4	4	I	0.0.0.0
-#define STG_DESCRIPTOR_FILE "settings_1p_wm2000.xtxt"
+#define STG_DESCRIPTOR_FILE "settings_1p_ws110x.xtxt"
 #define STG_MAX_NUM_SETTINGS 40
 #define STG_RAM_ARRAY_SIZE 0
 #define STG_MAX_SETTING_NAME_LEN 2

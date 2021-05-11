@@ -88,7 +88,7 @@ public sub print_routing_data(channel_num as byte, fragment_num as print_routing
 		if ser.interface=PL_SER_SI_FULLDUPLEX then print_str="Full-duplex" else print_str="Half-duplex"
 	
 	case PRD_BR:  'Baudrate
-#if PLATFORM_ID<>WM2000
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		if ser.baudrate<=ser.div9600 then
 			i=ser.div9600/ser.baudrate
 			select case i

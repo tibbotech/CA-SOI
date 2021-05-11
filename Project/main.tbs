@@ -16,41 +16,6 @@ sub on_sys_init()
 
 boot()
 
-
-#if PLATFORM_ID == WM2000
-net_linkstate=0
-#else 
-net_linkstate=1
-#if WLN_AVAILABLE
-				
-				'Try to replace with Wi-Fi
-				if wln_already_started=NO then
-					#if DEV_DEBUG_PRINT
-						dev_debugprint("Start Wi-Fi")
-					#endif
-					num_wln_failures=0					
-					if wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)<>WLN_STATUS_OK then
-						#if DEV_DEBUG_PRINT
-							dev_debugprint("Wi-Fi MALFUNCTIONED (could not start)")
-						#endif
-						wln_error=YES
-					else
-						wln_error=NO
-						wln_already_started=YES
-					end if
-				end if
-				
-				
-				change_current_interface(PL_SOCK_INTERFACE_WLN)
-				 
-				
-				'255 means Wi-Fi already fail and then we should allow GPRS to start (if enabled)
-				if num_wln_failures<>255 and wln_error=NO then
-					exit sub 
-				end if
-	
-		#endif
-#endif 
 end sub
 
 '--------------------------------------------------------------------
@@ -318,9 +283,13 @@ init_now:			'already in the serial login mode -- this is init
 	#if SUPPORTS_DISPLAY
 		lcd_proc_timer()
 	#endif
-	dhcp_proc_timer()
 	
-	#if WLN_AVAILABLE
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
+	dhcp_proc_timer()
+#endif
+
+	
+	#if WLN_AVAILABLE and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		wln_proc_timer()
 	#endif
 	
@@ -555,9 +524,11 @@ public sub on_sock_data_arrival
 	dim s as string
 	dim x,f as byte
 
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 	dhcp_proc_data()
-	
-	#if WLN_AVAILABLE
+#endif 
+
+	#if WLN_AVAILABLE and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		wln_proc_data()
 	#endif
 
@@ -749,14 +720,14 @@ sub on_net_overrun()
 end sub
 
 '--------------------------------------------------------------------
-#if WLN_AVAILABLE
+#if WLN_AVAILABLE and PLATFORM_ID <> WM2000 and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 sub on_wln_event(wln_event as pl_wln_events)
 	wln_proc_event(wln_event)
 end sub
 #endif
 
 '--------------------------------------------------------------------
-#if WLN_AVAILABLE
+#if WLN_AVAILABLE and PLATFORM_ID <> WM2000 and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 sub on_wln_task_complete(completed_task as pl_wln_tasks)
 	wln_proc_task_complete(completed_task)
 end sub

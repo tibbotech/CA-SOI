@@ -471,6 +471,9 @@ public sub net_cmd_proc(byref s as string(MAX_NET_CMD_LEN), cmd_mode as cmd_mode
 
 	case "E": 'reboot -------------------------------------------
 		if cmd_src_valid=NO then goto reply_denied
+		#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
+		dsman_sync_dcb()
+		#endif
 		sys.reboot
 		
 
@@ -641,7 +644,7 @@ d1:			if x>=num_sdf then goto reply_err
 			case 6:
 
 				reply_str=reply_str+"<tr><td>Baudrate</td><td>"
-#if PLATFORM_ID <> WM2000				
+#if PLATFORM_ID <> WM2000 and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102 			
 				if ser.baudrate<=ser.div9600 then
 					i=ser.div9600/ser.baudrate
 					select case i
@@ -1618,6 +1621,9 @@ public sub ser_cmd_proc(byref cmd_str as string,cmd_source_ser_port as word,erro
 
 
 	case "E": 'reboot -------------------------------------------
+		#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
+		dsman_sync_dcb()
+		#endif
 		sys.reboot
 
 
@@ -1893,5 +1899,23 @@ sub dsman_debugprint(byref print_data as string)
 end sub
 #endif
 
-
+#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
+sub dsman_sync_dcb() 
+	
+ 
+	param_wa=stg_get("WA",0)
+	if wln.autoconnectssid <> param_wa then
+		wln.autoconnectssid = param_wa
+	end if
+	wln_password=stg_get("WP",0)
+	if wln.autoconnectpassword <> wln_password then
+		wln.autoconnectpassword = wln_password
+	end if
+	param_wd=stg_get("WD",0)
+	if wln.autodhcp <> param_wd then
+		wln.autodhcp = param_wd
+	end if 
+	
+	
+end sub
 

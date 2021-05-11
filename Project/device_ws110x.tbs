@@ -1,0 +1,258 @@
+include "global.tbh"
+
+'--------------------------------------------------------------------
+function baudrate_set(br_mode as br_modes) as ok_ng
+'Set the UART according to the supplied baudrate "number"
+
+select case br_mode
+	case BR_1200:
+		ser.baudrate= PL_SER_BAUD_1200
+	case BR_2400:
+		ser.baudrate= PL_SER_BAUD_2400
+	case BR_4800:
+		ser.baudrate= PL_SER_BAUD_4800
+	case BR_9600:
+		ser.baudrate= PL_SER_BAUD_9600
+	case BR_19200:
+		ser.baudrate= PL_SER_BAUD_19200
+	case BR_38400:
+		ser.baudrate= PL_SER_BAUD_38400
+	case BR_57600:
+		ser.baudrate= PL_SER_BAUD_57600
+	case BR_115200:
+		ser.baudrate= PL_SER_BAUD_115200
+	case BR_300:
+		ser.baudrate= PL_SER_BAUD_300
+	case BR_230400:
+		ser.baudrate= PL_SER_BAUD_230400
+	case BR_460800:
+		ser.baudrate= PL_SER_BAUD_460800
+	case BR_921600:
+		ser.baudrate= PL_SER_BAUD_921600
+	case else
+		baudrate_set=NG
+		exit function
+	end select
+
+	baudrate_set=OK
+end function
+
+'--------------------------------------------------------------------
+function baudrate_get() as br_modes
+
+ 
+	
+	select case ser.baudrate
+	case PL_SER_BAUD_300:
+		baudrate_get= BR_300
+	case PL_SER_BAUD_1200:
+		baudrate_get=BR_1200
+	case PL_SER_BAUD_2400:
+		baudrate_get=BR_2400
+	case PL_SER_BAUD_4800:
+		baudrate_get=BR_4800
+	case PL_SER_BAUD_9600:
+		baudrate_get=BR_9600
+	case PL_SER_BAUD_19200:
+		baudrate_get=BR_19200
+	case PL_SER_BAUD_38400:
+		baudrate_get=BR_38400
+	case PL_SER_BAUD_57600:
+		baudrate_get=BR_57600
+	case PL_SER_BAUD_115200:
+		baudrate_get=BR_115200
+	case PL_SER_BAUD_230400:
+		baudrate_get=BR_230400
+	case PL_SER_BAUD_460800:
+		baudrate_get=BR_460800
+	case PL_SER_BAUD_921600:
+		baudrate_get=BR_921600
+	end select	 
+	
+end function
+
+
+dim S1_CHANNEL as byte = 255
+#if SIGNAL_STRENGTH_INDICATION=1 
+
+const S1_CLK = PL_IO_NUM_5
+const S1_DATA = PL_IO_NUM_6
+
+sub signal_strength_indication_init()
+
+	'Tibbit 41 setup on socket 1
+    '================================================================
+    select case tbt41_init("TBT00_3_S1", YES,S1_CLK,S1_DATA,S1_CHANNEL)
+    case TBT41_SELF_TEST_FAIL:
+        sys.debugprint("TBT41 self test failed!\r\n")
+        sys.halt()
+
+    case TBT41_NO_SSI_AVAILABLE:
+        sys.debugprint("SSI channel could not be allocated, using bit banging instead.\r\n")
+    end select
+    
+    '-----------------------------------------------------------------
+                    
+
+    
+    pat.play("B-B-B-",PL_PAT_CANINT)
+	
+	tbt41_line_set( EXT_LINE_1,  HIGH , S1_CHANNEL)
+	tbt41_line_set( EXT_LINE_2, HIGH , S1_CHANNEL)
+	tbt41_line_set( EXT_LINE_3, HIGH , S1_CHANNEL)
+	tbt41_line_set( EXT_LINE_4, HIGH , S1_CHANNEL)
+	tbt41_line_set( EXT_LINE_5, HIGH , S1_CHANNEL)	
+
+	tbt41_line_out_enable( EXT_LINE_1, YES , S1_CHANNEL)
+	tbt41_line_out_enable( EXT_LINE_2, YES , S1_CHANNEL)
+	tbt41_line_out_enable( EXT_LINE_3, YES , S1_CHANNEL)
+	tbt41_line_out_enable( EXT_LINE_4, YES , S1_CHANNEL)
+	tbt41_line_out_enable( EXT_LINE_5, YES , S1_CHANNEL)	 
+	
+ 
+	 
+end sub
+
+'--------------------------------------------------------------------
+sub signal_strength_set(strength as byte)
+'Bits 0-5 of strength argument correspond to LEDs	
+	
+	dim f,x as byte
+	dim s as string(8)
+	
+	if wln.associationstate <> PL_WLN_ASSOCIATED then
+		strength = 0
+	end if
+	
+	s=mid(bin(strength),3,8)
+	s=strgen(8-len(s),"0")+s	
+	
+	'make 5 clocks
+	 
+	for f=0 to 4
+		x=1-val(mid(s,f+4,1))
+		tbt41_line_set(4-f, x, S1_CHANNEL)			 
+	next f
+end sub
+
+
+
+#endif
+
+sub on_sys_dhcp_ok(renew as enum no_yes, interface as enum pl_sock_interfaces, ip as string(16), gateway_ip as string(16), netmask as string(16), lease_time as dword)
+#if NET_AVAILABLE 
+	
+	if interface=PL_SOCK_INTERFACE_NET then
+		if renew=YES and net.ip<>ip then
+			'this is a lease renewal and the DHCP server has issues new IP
+			'it is better to reboot than deal with the implications of the changed IP
+			sys.reboot
+		end if
+
+		#if DEV_DEBUG_PRINT
+			dev_debugprint("Ethernet DHCP OK ("+ip+")")
+		#endif
+
+		if net.ip<>ip then
+			sock.inconenabledmaster=NO
+			close_interface_sockets(PL_SOCK_INTERFACE_NET)
+			net.ip=ip
+			if gateway_ip<>"" then net.gatewayip=gateway_ip
+			if netmask<>"" then net.netmask=netmask
+			sock.inconenabledmaster=YES
+
+			if stg_get("IP",0)<>ip then
+				stg_set("IP",0,ip)
+			end if
+			if gateway_ip<>"" and stg_get("GI",0)<>gateway_ip then
+				stg_set("GI",0,gateway_ip)
+			end if
+			if netmask<>"" and stg_get("NM",0)<>netmask then
+				stg_set("NM",0,netmask)
+			end if
+		end if
+
+		ip_configured(PL_SOCK_INTERFACE_NET)=YES
+		dhcp_failed(PL_SOCK_INTERFACE_NET)=NO
+		#if SUPPORTS_DISPLAY
+			lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+		#endif
+	end if
+	#endif 
+	
+	#if WLN_AVAILABLE	
+		if interface=PL_SOCK_INTERFACE_WLN then
+			if renew=YES and wln.ip<>ip then
+				'this is a lease renewal and the DHCP server has issues new IP
+				'it is better to reboot than deal with the implications of the changed IP
+				sys.reboot
+			end if
+			
+			#if DEV_DEBUG_PRINT
+				dev_debugprint("Wi-Fi DHCP OK ("+ip+")")
+			#endif
+			
+			if wln.ip<>ip then
+				sock.inconenabledmaster=NO
+				close_interface_sockets(PL_SOCK_INTERFACE_WLN)
+				wln.ip=ip
+				if gateway_ip<>"" then wln.gatewayip=gateway_ip
+				if netmask<>"" then wln.netmask=netmask
+				sock.inconenabledmaster=YES
+				
+				if stg_get("WI",0)<>ip then
+					stg_set("WI",0,ip)
+				end if
+				if gateway_ip<>"" and stg_get("WG",0)<>gateway_ip then
+					stg_set("WG",0,gateway_ip)
+				end if
+				if netmask<>"" and stg_get("WN",0)<>netmask then
+					stg_set("WN",0,netmask)
+				end if
+			end if
+		ip_configured(PL_SOCK_INTERFACE_WLN)=YES
+		dhcp_failed(PL_SOCK_INTERFACE_WLN)=NO
+		#if SUPPORTS_DISPLAY
+			if current_interface=PL_SOCK_INTERFACE_WLN then
+				lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+			else
+				lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_GENTLE,LCD_PRINT_ELEMENT_ALL)
+			end if
+		#endif
+		end if
+	#endif
+end sub
+
+sub on_sys_dhcp_failure(interface as enum pl_sock_interfaces)
+	sock.inconenabledmaster=NO
+	close_interface_sockets(interface)
+	if interface=PL_SOCK_INTERFACE_NET then
+	#if NET_AVAILABLE 
+		#if DEV_DEBUG_PRINT
+			dev_debugprint("Ethernet DHCP FAILED")
+		#endif
+		net.ip=validate_ip(stg_get("IP",0))
+		
+		ip_configured(PL_SOCK_INTERFACE_NET)=YES
+		dhcp_failed(PL_SOCK_INTERFACE_NET)=YES
+		#if SUPPORTS_DISPLAY
+			lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+		#endif
+	#endif 
+	else
+		#if WLN_AVAILABLE	
+			#if DEV_DEBUG_PRINT
+				dev_debugprint("Wi-Fi DHCP FAILED")
+			#endif
+			wln.ip=validate_ip(stg_get("WI",0))
+			ip_configured(PL_SOCK_INTERFACE_WLN)=YES
+			dhcp_failed(PL_SOCK_INTERFACE_WLN)=YES
+			#if SUPPORTS_DISPLAY
+				lcd_display_page(LCD_PAGE_WLN,LCD_PRINT_MODE_STANDARD,LCD_PRINT_ELEMENT_ALL)
+			#endif
+		#endif
+	end if
+	sock.inconenabledmaster=YES
+end sub
+
+
