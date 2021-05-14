@@ -720,14 +720,14 @@ sub on_net_overrun()
 end sub
 
 '--------------------------------------------------------------------
-#if WLN_AVAILABLE and PLATFORM_ID <> WM2000 and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
+#if WLN_AVAILABLE and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 sub on_wln_event(wln_event as pl_wln_events)
 	wln_proc_event(wln_event)
 end sub
 #endif
 
 '--------------------------------------------------------------------
-#if WLN_AVAILABLE and PLATFORM_ID <> WM2000 and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
+#if WLN_AVAILABLE and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 sub on_wln_task_complete(completed_task as pl_wln_tasks)
 	wln_proc_task_complete(completed_task)
 end sub

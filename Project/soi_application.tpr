@@ -754,34 +754,27 @@ condition=PLATFORM_ID = WS1101 OR PLATFORM_ID = WS1102
 locked=yes
 location=commonlib
 [file75]
-path=main_WS110X.tbs
-type=basic
-format=65001
-condition=
-locked=no
-location=project
-[file76]
 path=html_config_ports_ws110x.txt
 type=text
 format=65001
 condition=PLATFORM_ID = WS1101 OR PLATFORM_ID = WS1102
 locked=no
 location=project
-[file77]
+[file76]
 path=device_ws110x.tbs
 type=basic
 format=65001
 condition=PLATFORM_ID = WS1101 OR PLATFORM_ID = WS1102
 locked=no
 location=project
-[file78]
+[file77]
 path=settings_1p_ws110x.xtxt
 type=xtext
 format=AGG_lib_configurator
 condition=
 locked=no
 location=project
-[file79]
+[file78]
 path=dsman_1p_ws110x.txt
 type=text
 format=65001
