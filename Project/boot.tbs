@@ -843,6 +843,10 @@ public sub boot
 		x= YES
 	end if 
 	
+	if sys.debugmode <> PL_SYS_DBG_NET then
+		sys.debugmode = PL_SYS_DBG_NET
+	end if
+	
 	if x = yes then 
 		sys.reboot
 	end if 

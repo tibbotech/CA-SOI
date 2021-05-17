@@ -1916,6 +1916,10 @@ sub dsman_sync_dcb()
 		wln.autodhcp = param_wd
 	end if 
 	
+	if sys.debugmode <> PL_SYS_DBG_NET then
+		sys.debugmode = PL_SYS_DBG_NET
+	end if
+	
 	
 end sub
 

@@ -92,10 +92,6 @@ sub signal_strength_indication_init()
     end select
     
     '-----------------------------------------------------------------
-                    
-
-    
-    pat.play("B-B-B-",PL_PAT_CANINT)
 	
 	tbt41_line_set( EXT_LINE_1,  HIGH , S1_CHANNEL)
 	tbt41_line_set( EXT_LINE_2, HIGH , S1_CHANNEL)
