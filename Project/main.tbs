@@ -371,7 +371,7 @@ init_now:			'already in the serial login mode -- this is init
 					sock.num=sock_notif(f)
 					select case sock.statesimple
 					case PL_SSTS_EST:
-						if sock.remoteip=most_resent_notif_dest_ip(f) and sock.remoteport=most_resent_notif_dest_port(f) then
+						if sock.remoteip=most_resent_notif_dest_ip(f) and sock.targetport=most_resent_notif_dest_port(f) then
 							'notification channel is opened and points at the right destination
 							x=dsr_state_curr(f)*4
 							x=x+dtr_state_curr(f)*8
