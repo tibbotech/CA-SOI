@@ -584,6 +584,12 @@ d1:			if x>=num_sdf then goto reply_err
 				end select
 				reply_str=reply_str+s2
 				reply_str=reply_str+"</td></tr>"
+			
+			#if PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+			reply_str=reply_str+"<tr><td>Rssi</td><td>"
+			reply_str=reply_str+ str(wln.rssi)
+			reply_str=reply_str+"</td></tr>"
+			#endif 
 				
 			case 4:
 				reply_str=reply_str+"<tr><td>Connection State</td><td>"
@@ -981,10 +987,10 @@ d1:			if x>=num_sdf then goto reply_err
 		#if SUPPORTS_APP_UPGR_BY_DSMAN
 			if len(s)<>131 then goto reply_err
 			curr_block_num=256*asc(mid(s,2,1))+asc(mid(s,3,1))
-			if curr_block_num>fware_block_ctr then goto reply_out_of_seq 'out of sequence		 
-			if curr_block_num<fware_block_ctr then goto reply_ok 'repeated block
+			if curr_block_num>fware_block_ctr then  goto reply_out_of_seq 'out of sequence		 
+			if curr_block_num<fware_block_ctr then goto reply_ok 'repeated block			
+		#if PLATFORM_ID <> WS1101 AND PLATFORM_ID <> WS1102
 			if curr_block_num>=fd.availableflashspace*2 then goto reply_out_of_mem 'no space to store new file
-			
 			'we fit two 128-byte packets into each sector
 			fd.buffernum=0
 			if (curr_block_num and 1)=0 then
@@ -995,6 +1001,25 @@ d1:			if x>=num_sdf then goto reply_err
 				fd.setbuffer(mid(s,4,128),128)
 				fd.setsector(curr_block_num/2)
 			end if
+		#else
+			if curr_block_num>=fd.availableflashspace*4 then goto reply_out_of_mem 'no space to store new file
+			'we fit 4 128-byte packets into each sector
+			fd.buffernum=0
+			dim buffernum as byte = curr_block_num mod 4
+			select case buffernum
+			case 0: 
+				fd.setbuffer(mid(s,4,128),0)
+			case 1:
+				fd.setbuffer(mid(s,4,128),128)
+			case 2:
+				fd.setbuffer(mid(s,4,128),256)
+			case 3:
+				fd.setbuffer(mid(s,4,128),384)
+				fd.setsector(curr_block_num/4)
+			case else:
+				
+			end select
+		#endif 
 			'next block number
 			fware_block_ctr=fware_block_ctr+1
 			x=fware_block_ctr/256
@@ -1015,6 +1040,20 @@ d1:			if x>=num_sdf then goto reply_err
 			i=sys.timercount
 			while i=sys.timercount
 			wend
+			
+			#if PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+			
+			'we might have one unsaved sector!
+			if (curr_block_num mod 4)>0 then
+				fd.setsector(curr_block_num/4)
+			end if
+			
+			num_sectors=fware_block_ctr/4
+			if (fware_block_ctr mod 4)<>0 then
+				num_sectors=num_sectors+1
+			end if
+			
+			#else 
 			'we might have one unsaved sector!
 			if (curr_block_num and 1)=0 then
 				fd.setsector(curr_block_num/2)
@@ -1024,6 +1063,11 @@ d1:			if x>=num_sdf then goto reply_err
 			if (fware_block_ctr and 1)<>0 then
 				num_sectors=num_sectors+1
 			end if
+			
+			#endif 
+
+			
+			
 			'copy between areas of flash
 			pat.play(PAT_BOTH_LOOP,PL_PAT_CANINT)
 			i=sys.timercount 'this is a small delay to make pattern start playing

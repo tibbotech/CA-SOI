@@ -23,7 +23,6 @@ bits09876543210
 >>&b00000000000	DI	Destination IP-address 							S,I,15	^
 >>&b00000000000	DP	Destination Port								S,I,5	^
 >>&b00000100000	SI	Serial Interface 								B,L,0-Full-duplex (RS232);1-Half-duplex (RS485);2-Full-duplex (RS422);	^
->>&b00001000000	SI	Serial Interface 								B,L,0-Full-duplex;1-Half-duplex;	^
 >>&b00000000000	FC	Flow Control							B,L,0-Disabled OR remote;1-Enabled, RTS/CTS;2-Enabled, XON/XOFF;	^
 >>&b00000000000	DT	DTR Mode 										B,L,0-Idle OR remote;1-Indicate connection status;	^
 >>&b00000000000	DS	Power-up DTR State 								B,L,0-LOW;1-HIGH;	^

@@ -352,7 +352,9 @@ public sub boot
 		next f
 	#endif
 	
-	
+	#if PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102
+		init_io_expander()
+	#endif 
 	#if SIGNAL_STRENGTH_INDICATION
 		signal_strength_indication_init()
 	#endif	
@@ -385,14 +387,15 @@ public sub boot
 	#endif
 
 	'----- hardware mode of serial ports -----
-	#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_1P and (PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102)
+	#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_1P 
 		'this is for WS1102
-		
-		tbt41_line_set( SER0_HDFD,  HIGH , S1_CHANNEL)
-		tbt41_line_out_enable( SER0_HDFD, YES , S1_CHANNEL)
-		
-		tbt41_line_set( SER0_RSMD, LOW , S1_CHANNEL)
-		tbt41_line_out_enable( SER0_RSMD, YES , S1_CHANNEL)
+		#if PLATFORM_ID = WS1101 or PLATFORM_ID=WS1102
+			tbt41_line_set( SER0_HDFD,  HIGH , S1_CHANNEL)
+			tbt41_line_out_enable( SER0_HDFD, YES , S1_CHANNEL)
+			
+			tbt41_line_set( SER0_RSMD, LOW , S1_CHANNEL)
+			tbt41_line_out_enable( SER0_RSMD, YES , S1_CHANNEL)
+		#endif 
 		 
 	#endif
 	#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_4C

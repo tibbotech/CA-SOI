@@ -75,12 +75,11 @@ end function
 dim S1_CHANNEL as byte = 255
 #if SIGNAL_STRENGTH_INDICATION=1 
 
-const S1_CLK = PL_IO_NUM_5
-const S1_DATA = PL_IO_NUM_6
+const S1_CLK = PL_IO_NUM_5_EXPANDER_SCL
+const S1_DATA = PL_IO_NUM_6_EXPANDER_SDA
 
-sub signal_strength_indication_init()
-
-	'Tibbit 41 setup on socket 1
+sub init_io_expander()
+		'Tibbit 41 setup on socket 1
     '================================================================
     select case tbt41_init("TBT00_3_S1", YES,S1_CLK,S1_DATA,S1_CHANNEL)
     case TBT41_SELF_TEST_FAIL:
@@ -92,7 +91,10 @@ sub signal_strength_indication_init()
     end select
     
     '-----------------------------------------------------------------
-	
+end sub
+
+sub signal_strength_indication_init()
+
 	tbt41_line_set( EXT_LINE_1,  HIGH , S1_CHANNEL)
 	tbt41_line_set( EXT_LINE_2, HIGH , S1_CHANNEL)
 	tbt41_line_set( EXT_LINE_3, HIGH , S1_CHANNEL)

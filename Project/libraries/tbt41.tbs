@@ -65,10 +65,12 @@ function tbt41_init(byref signature as string, use_ssi as no_yes, pin_clk as byt
 	if channel <4 then
 		ssi.channel=channel
 		ssi.enabled=NO
-		#IF PLATFORM_ID=TPP2WG2 or PLATFORM_ID=TPP3WG2
+		#if PLATFORM_ID=TPP2WG2 or PLATFORM_ID=TPP3WG2
 			ssi.baudrate=5
 		#elif PLATFORM_ID=TPP2W or PLATFORM_ID=TPP3W
 			ssi.baudrate=1
+		#elif PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+			ssi.baudrate=PL_SSI_BAUD_400kHz
 		#endif
 		ssi.clkmap=pin_clk
 		ssi.dimap=pin_data

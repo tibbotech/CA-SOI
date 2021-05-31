@@ -20,8 +20,6 @@
 >>&b00000000	I=CM;E=1;D=Connection mode;T=INT;C=STATIC;O=0- Immediately (on powerup)/0/1- On data OR command/1/2- On command only/2/3- On command OR DSR=HIGH/3;S=RM!=0?"e":"i"
 >>&b00000000	I=DI;E=1;D=Destination IP-address;T=STRING;C=IPCTRL;S=RM==1||RM==2||SF==1?"e":"i"
 >>&b00000000	I=DP;E=1;D=Destination port;T=INT;C=EDIT;S=RM!=0?"e":"i"
->>&b00000000	I=ND;D=Notification destination;T=INT;C=STATIC;O=0- Last port/0/1- Port 65535/1/;S=IB==0?"e":"i"
->>&b00000000	I=SI;D=Serial interface;T=INT;C=STATIC;O=0- Full-duplex/0/1- Half-duplex/1
 >>&b00000000	I=FC;D=RTS/CTS flow control;T=INT;C=STATIC;O=0- Disabled OR remote /0/1- Local RTS-CTS/1/2- Local XON-XOFF/2
 >>&b00000000	I=DT;D=DTR mode;T=INT;C=STATIC;O=0- Idle or remote /0/1- Indicate connection status/1
 >>&b00000000	I=DS;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT==0?"e":"i"
