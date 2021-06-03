@@ -351,12 +351,15 @@ public sub boot
 			if port_in_use(f)=YES then num_ports_in_use=num_ports_in_use+1
 		next f
 	#endif
-	
-	#if PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102
-		init_io_expander()
-	#endif 
+	 
 	#if SIGNAL_STRENGTH_INDICATION
-		signal_strength_indication_init()
+	#if PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102 
+		init_io_expander()
+	#endif
+		signal_strength_indication_init() 
+		signal_strength_set(0)
+ 
+		
 	#endif	
 	
 	'----- per-channel state indication -----

@@ -115,22 +115,33 @@ end sub
 sub signal_strength_set(strength as byte)
 'Bits 0-5 of strength argument correspond to LEDs	
 	
-	dim f,x as byte
-	dim s as string(8)
-	
+	dim f as integer
+	 
+	const max_strength = 230
+	const min_strength = 100
 	if wln.associationstate <> PL_WLN_ASSOCIATED then
 		strength = 0
 	end if
 	
-	s=mid(bin(strength),3,8)
-	s=strgen(8-len(s),"0")+s	
+	if strength <= min_strength then
+		strength = 0
+    else if strength >= max_strength then
+        strength = 4
+    else 
+         strength = (strength -min_strength) / ((max_strength - min_strength)/5)
+	end if
+
 	
-	'make 5 clocks
-	 
-	for f=0 to 4
-		x=1-val(mid(s,f+4,1))
-		tbt41_line_set(4-f, x, S1_CHANNEL)			 
+	for f= 4 to 0 step -1
+		if strength >= f and strength > 0 then
+			tbt41_line_set(f, 0, S1_CHANNEL)
+		else 
+			tbt41_line_set(f, 1, S1_CHANNEL)
+		end if
+					 
 	next f
+	
+	
 end sub
 
 
