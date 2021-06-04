@@ -503,9 +503,13 @@ init_now:			'already in the serial login mode -- this is init
 								running_light=0
 							end if
 						else
+						#if PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+							signal_strength_set(wln.rssi)
+						#else 
 							x=(wln.rssi/40)+1
 							if x>5 then x=5
 							signal_strength_set("&b"+strgen(x,"1"))
+						#endif
 						end if
 					end if
 				else
