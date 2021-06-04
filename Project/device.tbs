@@ -446,10 +446,29 @@ end sub
 
 '--------------------------------------------------------------------
 sub callback_stg_pre_get(byref stg_name_or_num as string,index as byte,byref stg_value as string)
+
+
+#if PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+	select case stg_name_or_num
+		case "WC":
+			stg_value=wln.domain		
+		case else:
+	end select
+#endif 
+
 end sub
 
 '--------------------------------------------------------------------
 sub callback_stg_post_set(byref stg_name_or_num as string, index as byte,byref stg_value as string)
+
+#if PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+	select case stg_name_or_num
+		case "WC":
+			wln.domain=stg_value
+		case else:
+	end select
+#endif
+
 end sub
 
 '--------------------------------------------------------------------

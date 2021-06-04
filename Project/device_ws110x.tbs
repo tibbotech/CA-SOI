@@ -5,6 +5,8 @@ function baudrate_set(br_mode as br_modes) as ok_ng
 'Set the UART according to the supplied baudrate "number"
 
 select case br_mode
+	case BR_300:
+		ser.baudrate= PL_SER_BAUD_300
 	case BR_1200:
 		ser.baudrate= PL_SER_BAUD_1200
 	case BR_2400:
@@ -21,8 +23,6 @@ select case br_mode
 		ser.baudrate= PL_SER_BAUD_57600
 	case BR_115200:
 		ser.baudrate= PL_SER_BAUD_115200
-	case BR_300:
-		ser.baudrate= PL_SER_BAUD_300
 	case BR_230400:
 		ser.baudrate= PL_SER_BAUD_230400
 	case BR_460800:
@@ -88,8 +88,7 @@ sub init_io_expander()
 
     case TBT41_NO_SSI_AVAILABLE:
         sys.debugprint("SSI channel could not be allocated, using bit banging instead.\r\n")
-    end select
-    
+    end select 
     '-----------------------------------------------------------------
 end sub
 

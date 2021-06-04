@@ -818,7 +818,11 @@ d1:			if x>=num_sdf then goto reply_err
 		
 		'process password if necessary
 		if error_mode=NO then
+#if PLATFORM_ID=WS1102 or PLATFORM_ID=WS1102		
+			if stg_sg("OF",index,reply_str,EN_STG_GET)<>EN_STG_STATUS_OK then goto reply_failed
+#else 
 			if stg_sg("OP",index,reply_str,EN_STG_GET)<>EN_STG_STATUS_OK then goto reply_failed
+#endif 
 			if reply_str="1" then
 				if stg_sg("PW",0,reply_str,EN_STG_GET)<>EN_STG_STATUS_OK then goto reply_failed
 				if reply_str<>"" then

@@ -18,9 +18,16 @@ public sub boot
 		interface_ready(f)=NO
 	next f
 
+#if PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+	if stg_start_no_init()<>EN_STG_STATUS_OK then
+		goto boot_failed
+	end if
+#else 
 	if stg_start()<>EN_STG_STATUS_OK then
 		goto boot_failed
 	end if
+#endif 
+
 	
 	'form configuration words for descriptor files
 	dsman_config=0
@@ -653,7 +660,11 @@ public sub boot
 			param_dt(f)=val(stg_get("DT",f))
 			param_ds(f)=val(stg_get("DS",f))
 			param_rc(f)=val(stg_get("RC",f))
+#if PLATFORM_ID=WS1102 or PLATFORM_ID=WS1102
+			param_op(f)=val(stg_get("OF",f))   'OP is the wscompanion app command for getting the operating mode'
+#else 
 			param_op(f)=val(stg_get("OP",f))
+#endif 
 			param_nb(f)=val(stg_get("NB",f))
 			param_nd(f)=val(stg_get("ND",f))
 			overriding_destination_set(f)=NO
