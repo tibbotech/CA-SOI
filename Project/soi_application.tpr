@@ -4,7 +4,7 @@ platform=WS1102
 src_lib_ver=2_01_04
 name=soi_application-4_33
 output=soi_application-4_34.tpc
-debug=off
+debug=on
 defines= /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_FD=FD_ENABLED /dOBJECT_KP=KP_ENABLED /dOBJECT_WLN=WLN_ENABLED
 transport=udp_winpcap
 [address1]
@@ -420,28 +420,28 @@ location=project
 path=html_config_wifi.txt
 type=text
 format=
-condition=
+condition=PLATFORM_ID <> WS1101 AND PLATFORM_ID <> WS1102
 locked=no
 location=project
 [file37]
 path=html_config_ports.txt
 type=text
 format=
-condition=PLATFORM_ID <> WM2000
+condition=PLATFORM_ID <> WS1102 AND PLATFORM_ID <> WS1101
 locked=no
 location=project
 [file38]
 path=html_config_settings.txt
 type=text
 format=
-condition=
+condition=PLATFORM_ID <> WS1101 AND PLATFORM_ID <> WS1102
 locked=no
 location=project
 [file39]
 path=ga1000fw.bin
 type=binary
 format=
-condition=PLATFORM_ID <> EM510W
+condition=PLATFORM_ID <> EM510W AND PLATFORM_ID <> WS1102 AND PLATFORM_ID <> WS1101
 locked=no
 location=project
 [file40]
@@ -779,5 +779,12 @@ path=dsman_1p_ws110x.txt
 type=text
 format=65001
 condition=
+locked=no
+location=project
+[file79]
+path=html_config_settings_ws110x.txt
+type=text
+format=65001
+condition=PLATFORM_ID = WS1102 OR PLATFORM_ID = WS1101
 locked=no
 location=project

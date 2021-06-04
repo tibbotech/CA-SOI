@@ -9,7 +9,7 @@ dim it_was_save as no_yes
 dim html_setting_status as en_stg_status_codes(MAX_HTML_NUM_SETTINGS)
 
 '=============================================================
-public sub html_print_setting(html_descr_file as string(30),config_data as word)
+public sub html_print_setting(html_descr_file as string(31),config_data as word)
 'Read the html_descr_file and print the settings that is in the file. 
 	dim i,b as word
 	dim setting_val, setting_str as string(50)

@@ -64,7 +64,7 @@ li {display:inline;}
 <? if login_mode=CMD_MODE_HTTP then ?>
 	<a href = 'settings.html?session=<?sock_setsend(login_data)?>' target = showframe> General Settings </a> <br>
 	<br>
-<?	#if WLN_AVAILABLE=0
+<?	#if WLN_AVAILABLE=0 OR PLATFORM_ID=WS1101 OR PLATFORM_ID=WS1102
 		goto skip_wifi
 	#endif
 ?>
