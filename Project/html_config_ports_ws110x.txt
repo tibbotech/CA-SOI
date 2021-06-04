@@ -23,14 +23,13 @@ bits09876543210
 >>&b00000000000	DI	Destination IP-address 							S,I,15	^
 >>&b00000000000	DP	Destination Port								S,I,5	^
 >>&b00000100000	SI	Serial Interface 								B,L,0-Full-duplex (RS232);1-Half-duplex (RS485);2-Full-duplex (RS422);	^
->>&b00001000000	SI	Serial Interface 								B,L,0-Full-duplex;1-Half-duplex;	^
->>&b00000000000	FC	RTS/CTS Flow Control							B,L,0-Disabled OR remote;1-Enabled;	^
+>>&b00000000000	FC	Flow Control							B,L,0-Disabled OR remote;1-Enabled, RTS/CTS;2-Enabled, XON/XOFF;	^
 >>&b00000000000	DT	DTR Mode 										B,L,0-Idle OR remote;1-Indicate connection status;	^
 >>&b00000000000	DS	Power-up DTR State 								B,L,0-LOW;1-HIGH;	^
 >>&b00010000000	BR	Baudrate										B,L,0-1200bps;1-2400bps;2-4800bps;3-9600bps;4-19200bps;5-38400bps;6-57600bps;7-115200bps;8-150bps;9-300bps;10-600bps;11-28800bps;	^
->>&b00100000000	BR	Baudrate										B,L,0-1200bps;1-2400bps;2-4800bps;3-9600bps;4-19200bps;5-38400bps;6-57600bps;7-115200bps;8-150bps;9-300bps;10-600bps;11-28800bps;12-230400bps;13-460800bps;	^
+>>&b00100000000	BR	Baudrate										B,L,0-1200bps;1-2400bps;2-4800bps;3-9600bps;4-19200bps;5-38400bps;6-57600bps;7-115200bps;8-150bps;9-300bps;10-600bps;11-28800bps;12-230400bps;13-460800bps;14-921600;	^
 >>&b00000000000	PR	Parity											B,L,0-None;1-Even;2-Odd;3-Mark;4-Space;	^
->>&b00000000000	BB	Data Bits	 									B,L,0-7 bits;1-8 bits;	^
+>>&b00000000000	BB	Data Bits										B,L,0-7 bits;1-8 bits;	^
 >>&b00000000000	MD	Max Intercharacter Delay						S,I,3	^
 >>&b00000000000	SE	Soft Entry Into Serial Programming Mode			B,L,0-Disabled;1-Enabled (option1);2-Enabled (option2);	^
 >>&b00000000000	EC	Escape Character (ASCII Code)					S,I,3	^

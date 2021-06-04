@@ -28,7 +28,7 @@ enum en_dsman_status_codes
 	EN_DSMAN_STATUS_WRONG_DESCRIPTOR	'Wrong descriptor file data
 end enum
 
-const FIRMWARE_VERSION="{ds4.33}"
+const FIRMWARE_VERSION="{ds4.34}"
 const LOGIN_TOUT_CONST=600
 const MAX_NET_CMD_LEN=131 'max length of network command
 const MAX_NET_RPL_LEN=255 'max length of network replies
@@ -45,3 +45,6 @@ declare sub sock_closed_check_net_login(sock_num as byte)
 declare sub ser_cmd_proc(byref cmd_str as string,cmd_source_ser_port as word,error_mode as no_yes)
 
 declare ser_cmd_str as string(MAX_SER_CMD_LEN)
+#if PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+declare sub dsman_sync_dcb()
+#endif

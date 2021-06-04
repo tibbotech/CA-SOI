@@ -13,11 +13,13 @@ dim button_pressed_ctr as byte
 
 '====================================================================
 sub on_sys_init()
-	boot()
-	net_linkstate=1
+
+boot()
+
 end sub
 
 '--------------------------------------------------------------------
+#if NET_AVAILABLE 
 #if SIMULATE_ETHER_OFF_BY_BUTTON=0
 sub on_net_link_change()
 #else
@@ -25,6 +27,7 @@ sub on_button_released()
 #endif
 	
 	#if SIMULATE_ETHER_OFF_BY_BUTTON=0
+
 		net_linkstate=net.linkstate
 	#else
 		if net_linkstate=1 then
@@ -41,7 +44,7 @@ sub on_button_released()
 	#endif
 	
 end sub
-
+#endif 
 '--------------------------------------------------------------------
 #if SIMULATE_ETHER_OFF_BY_BUTTON=0
 sub on_button_released()
@@ -129,7 +132,11 @@ sub on_pat()
 	#endif
 
 	if pat.channel=0 then
+#if NET_AVAILABLE
 		if net.failure=YES or wln_error=YES or gprs_error=YES then
+#else 
+		if wln_error=YES or gprs_error=YES then
+#endif 
 			pat.play(PAT_TWO_SHORT_RED,PL_PAT_CANINT)
 			exit sub
 		end if
@@ -276,9 +283,13 @@ init_now:			'already in the serial login mode -- this is init
 	#if SUPPORTS_DISPLAY
 		lcd_proc_timer()
 	#endif
-	dhcp_proc_timer()
 	
-	#if WLN_AVAILABLE
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
+	dhcp_proc_timer()
+#endif
+
+	
+	#if WLN_AVAILABLE and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		wln_proc_timer()
 	#endif
 	
@@ -360,7 +371,7 @@ init_now:			'already in the serial login mode -- this is init
 					sock.num=sock_notif(f)
 					select case sock.statesimple
 					case PL_SSTS_EST:
-						if sock.remoteip=most_resent_notif_dest_ip(f) and sock.remoteport=most_resent_notif_dest_port(f) then
+						if sock.remoteip=most_resent_notif_dest_ip(f) and sock.targetport=most_resent_notif_dest_port(f) then
 							'notification channel is opened and points at the right destination
 							x=dsr_state_curr(f)*4
 							x=x+dtr_state_curr(f)*8
@@ -513,9 +524,11 @@ public sub on_sock_data_arrival
 	dim s as string
 	dim x,f as byte
 
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 	dhcp_proc_data()
-	
-	#if WLN_AVAILABLE
+#endif 
+
+	#if WLN_AVAILABLE and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		wln_proc_data()
 	#endif
 
@@ -707,14 +720,14 @@ sub on_net_overrun()
 end sub
 
 '--------------------------------------------------------------------
-#if WLN_AVAILABLE
+#if WLN_AVAILABLE and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 sub on_wln_event(wln_event as pl_wln_events)
 	wln_proc_event(wln_event)
 end sub
 #endif
 
 '--------------------------------------------------------------------
-#if WLN_AVAILABLE
+#if WLN_AVAILABLE and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 sub on_wln_task_complete(completed_task as pl_wln_tasks)
 	wln_proc_task_complete(completed_task)
 end sub

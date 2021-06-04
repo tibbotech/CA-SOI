@@ -110,7 +110,9 @@ end if
 	
 	select case current_interface
 	case PL_SOCK_INTERFACE_NET:
+	#if NET_AVAILABLE 	
 		sock_setsend("Network i/f: Ethernet<br>IP: "+net.ip+"<br>MAC: "+net.mac+"<br>")
+	#endif 	
 	
 	#if WLN_AVAILABLE	
 		case PL_SOCK_INTERFACE_WLN:

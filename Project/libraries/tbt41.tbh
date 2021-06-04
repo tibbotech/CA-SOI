@@ -1,0 +1,60 @@
+enum ext_line_name
+	EXT_LINE_1=0,
+	EXT_LINE_2=1,
+	EXT_LINE_3=2,
+	EXT_LINE_4=3,
+	EXT_LINE_5=4,
+	EXT_LINE_6=5,
+	EXT_LINE_7=6,
+	EXT_LINE_8=7	
+end enum
+
+enum tbt41_errcheck
+	TBT41_OK,
+	TBT41_SELF_TEST_FAIL,
+	TBT41_NO_SSI_AVAILABLE
+end enum
+
+declare function tbt41_init(byref signature as string, use_ssi as no_yes, pin_clk as byte, pin_data as byte, byref channel as byte) as tbt41_errcheck
+'Call this function to initialize the Tibbit.
+'Use_ssi argument specifies whether you want to communicate with this Tibbit using the SSI channel running in the I2C mode (YES), or
+'go for direct I/O manipulation a.k.a. bit-banging (NO).
+'Note that there is a limited number of SSI channels so if you set use_ssi=YES this function may return TBT41_NO_SSI_AVAILABLE, meaning that
+'there are no free SSI channels left. This doesn't mean failure. Rather, it means that comms will proceed in bit banging mood.
+
+declare function tbt41_line_out_enable(num as ext_line_name,en as no_yes, channel as byte)as ok_ng
+'Configures the specified line (num) to be an input (en=NO) or outpur (en=YES).
+'The function will return NG if the execution fails.
+
+declare function tbt41_line_pup_enable(num as ext_line_name, en as no_yes, channel as byte)as ok_ng
+'If en=YES and the corresponding line (num) is configured for input, then this line will be pulled up with a 100 KOhm resistor.
+'The function will return NG if the execution fails.
+
+declare function tbt41_line_set(num as ext_line_name, state as low_high, channel as byte) as ok_ng
+'Sets the output state of the specified line (num). For this to work the line has to be configured as output.
+'The function will return NG if the execution fails.
+
+declare function tbt41_line_get(num as ext_line_name, byref state as low_high, channel as byte)as ok_ng
+'Reads the state of the specified line (num). The value will be returned in the state variable.
+'The function will return NG if the execution fails.
+
+declare function tbt41_port_config_set(dir as byte,pullup as byte, channel as byte)as ok_ng
+'Sets the direction and pull-up status for all port lines simultaneously.
+'Each bit of dir argument  is responsible for the direction of one line. The line will act as an input when the bit is 1, and output when the bit is 0.
+'Each bit of pullup argument is responsible for enabling the pull-up resistor for the corresponding line. The pull-up resistor is enabled when the corresponding bit is at 1.
+'The function will return NG if the execution fails.
+
+declare function tbt41_port_config_get(byref dir as byte,byref pullup as byte, channel as byte)as ok_ng
+'Reads the direction (input/output) and pull-up resistor configuration data.
+'Each bit of dir and pullup reflects the programming of the corresponding line. Current configuration will be returned through dir and pullup arguments.
+'Dir argument: a line is configured as an output when its corresponding bit is at 1, input -- when the bit is at 0.
+'Pullup argument: a line has its pull-up resistor enabled when the corresponding bit is at 1.
+'The function will return NG if the execution fails.
+
+declare function tbt41_port_set(data as byte, channel as byte) as ok_ng
+'Sets the output states of all port lines. Only lines configured as outputs will be affected.
+'The function will return NG if the execution fails.
+
+declare function tbt41_port_get(byref data as byte, channel as byte)as ok_ng
+'Reads the current state of all port lines. Port state is returned through the data argument.
+'The function will return NG if the execution fails.

@@ -18,9 +18,16 @@ public sub boot
 		interface_ready(f)=NO
 	next f
 
+#if PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+	if stg_start_no_init()<>EN_STG_STATUS_OK then
+		goto boot_failed
+	end if
+#else 
 	if stg_start()<>EN_STG_STATUS_OK then
 		goto boot_failed
 	end if
+#endif 
+
 	
 	'form configuration words for descriptor files
 	dsman_config=0
@@ -162,7 +169,12 @@ public sub boot
 		ser.num=0
 		ser.ctsmap=SER0_CTS_INT
 		ser.rtsmap=SER0_RTS
-		cts_mapping(0)=BASE_OF_INT_LINES+SER0_CTS_INT 
+#if PLATFORM_ID=WS1101 or PLATFORM_ID=WS1102
+			cts_mapping(0)=L0
+#else 
+			cts_mapping(0)=BASE_OF_INT_LINES+SER0_CTS_INT 
+#endif 
+		
 		dsr_mapping(0)=SER0_DSR
 		dtr_mapping(0)=SER0_DTR
 		num_ports_in_use=1
@@ -346,10 +358,15 @@ public sub boot
 			if port_in_use(f)=YES then num_ports_in_use=num_ports_in_use+1
 		next f
 	#endif
-	
-	
+	 
 	#if SIGNAL_STRENGTH_INDICATION
-		signal_strength_indication_init()
+	#if PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102 
+		init_io_expander()
+	#endif
+		signal_strength_indication_init() 
+		signal_strength_set(0)
+ 
+		
 	#endif	
 	
 	'----- per-channel state indication -----
@@ -380,6 +397,17 @@ public sub boot
 	#endif
 
 	'----- hardware mode of serial ports -----
+	#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_1P 
+		'this is for WS1102
+		#if PLATFORM_ID = WS1101 or PLATFORM_ID=WS1102
+			tbt41_line_set( SER0_HDFD,  HIGH , S1_CHANNEL)
+			tbt41_line_out_enable( SER0_HDFD, YES , S1_CHANNEL)
+			
+			tbt41_line_set( SER0_RSMD, LOW , S1_CHANNEL)
+			tbt41_line_out_enable( SER0_RSMD, YES , S1_CHANNEL)
+		#endif 
+		 
+	#endif
 	#if SUPPORTS_422_485_1 and DEVICE_PORT_SCHEME=PORT_SCHEME_4C
 		'this is for DS1102
 		io.num=SER0_HDFD
@@ -450,22 +478,27 @@ public sub boot
 	current_interface=PL_SOCK_INTERFACE_NET
 
 	'net. parameters and DHCP
+	#if NET_AVAILABLE
 	net.ip=validate_ip(stg_get("IP",0))
 	net.gatewayip=stg_get("GI",0)
 	net.netmask=stg_get("NM",0)
 	param_dh=val(stg_get("DH",0))
 	if param_dh<>NO then
 		ip_configured(PL_SOCK_INTERFACE_NET)=NO
-		dhcp_start(PL_SOCK_INTERFACE_NET,net.ip,"")
+		dhcp_start(PL_SOCK_INTERFACE_NET,net.ip,"")		
 		dhcp_used=YES
 	else
 		ip_configured(PL_SOCK_INTERFACE_NET)=YES
 	end if
-
+	#endif 
 	#if WLN_AVAILABLE
 		'Wi-Fi parameters and DHCP
 		wln_error=NO
+	#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
+		param_we=WE_ENABLED_PERMANENT
+	#else 
 		param_we=stg_get("WE",0)
+	#endif
 		if param_we<>WE_DISABLED then
 			num_wln_failures=0
 			wln.ip=validate_ip(stg_get("WI",0))
@@ -474,14 +507,20 @@ public sub boot
 			param_wd=val(stg_get("WD",0))
 			if param_wd<>NO then
 				ip_configured(PL_SOCK_INTERFACE_WLN)=NO
+			#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 				dhcp_start(PL_SOCK_INTERFACE_WLN,wln.ip,"")
+			#endif 
 				dhcp_used=YES
 			else
 				ip_configured(PL_SOCK_INTERFACE_WLN)=YES
 			end if
 			param_wa=stg_get("WA",0)
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 			param_ws=val(stg_get("WS",0))
 			wln_init()
+#else  
+			param_ws = WLN_SECURITY_MODE_WPA2    'WS1101 uses autoconnect. 
+#endif			
 			select case param_ws
 			case WLN_SECURITY_MODE_DISABLED:
 				wln_password=""
@@ -507,6 +546,15 @@ public sub boot
 					end if
 #endif
 				else 
+#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
+					if param_wa=stg_get("WA",0) and stg_get("WP",0)=EN_STG_STATUS_OK and stg_sg("WP",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK then
+					else
+						wln_password=stg_get("WP",0)						 
+						stg_set("WS",0,str(param_ws))
+						stg_set("WA",0,param_wa)
+						stg_set("WP",0,stg_get("WP",0))
+					end if
+#else 
 					if param_wa=stg_get("WA",1) and stg_get("WP",0)=stg_get("WP",1) and stg_sg("WP",0,wln_password,EN_STG_GET)=EN_STG_STATUS_OK then
 					else
 						wln_password=stg_get("WP",0)
@@ -515,6 +563,8 @@ public sub boot
 						stg_set("WA",1,param_wa)
 						stg_set("WP",1,stg_get("WP",0))
 					end if
+#endif 
+		
 				end if
 #endif				
 			end select
@@ -523,7 +573,9 @@ public sub boot
 				#if DEV_DEBUG_PRINT
 					dev_debugprint("Start Wi-Fi")
 				#endif
-				wln_init() 
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
+					wln_init()
+
 				if wln.getmoduletype=PL_WLN_MODULE_TYPE_GA1000 then
 					wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)
 				else 
@@ -539,12 +591,15 @@ public sub boot
 			else
 				wln_stop()
 				wln_already_started=NO
+#else 
+			wln_already_started=YES
+#endif 
 			end if
 		end if
-	#else
+#else 
 		wln_error=NO
 		param_we=WE_DISABLED
-	#endif
+#endif
 
 
 	'GPRS parameters
@@ -605,7 +660,11 @@ public sub boot
 			param_dt(f)=val(stg_get("DT",f))
 			param_ds(f)=val(stg_get("DS",f))
 			param_rc(f)=val(stg_get("RC",f))
+#if PLATFORM_ID=WS1102 or PLATFORM_ID=WS1102
+			param_op(f)=val(stg_get("OF",f))   'OP is the wscompanion app command for getting the operating mode'
+#else 
 			param_op(f)=val(stg_get("OP",f))
+#endif 
 			param_nb(f)=val(stg_get("NB",f))
 			param_nd(f)=val(stg_get("ND",f))
 			overriding_destination_set(f)=NO
@@ -711,10 +770,12 @@ public sub boot
 	'this allocates channel buffers, puts channels in normal mode
 	x=0
 	if dhcp_used=YES then
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		x=x+val(dhcp_get_info(DHCP_INFO_ELEMENT_REQUIRED_BUFFERS,""))
+#endif 	
 	end if
 	
-	#if WLN_AVAILABLE	
+	#if WLN_AVAILABLE and PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		if param_we<>WE_DISABLED and wln_already_started=NO then  
 			x=x+val(wln_get_info(WLN_INFO_ELEMENT_REQUIRED_BUFFERS,str(param_ws)))
 		end if
@@ -740,10 +801,12 @@ public sub boot
 		end if
 	#endif
 
+	#if NET_AVAILABLE 
 	'don't have established Ethernet link by now? Assume there is no link
 	if net.linkstate=PL_NET_LINKSTAT_NOLINK then
 		ethernet_link_state_change(PL_NET_LINKSTAT_NOLINK)
 	end if
+	#endif 
 
 	pat_canint=NO 'this way the pattern below will not be screwed up
 	pat.channel=0
@@ -758,7 +821,11 @@ public sub boot
 	#endif
 	
 	#if BEEP_AVAILABLE
+	#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		beep.divider=BEEP_DIVIDER
+	#else 
+		beep.frequency = 2750
+	#endif 
 		beep.play(BEEP_SHORT,PL_BEEP_CANINT)
 	#endif
 	
@@ -766,6 +833,61 @@ public sub boot
 		lcd_display_page(LCD_PAGE_NET,LCD_PRINT_MODE_AGGRESSIVE,LCD_PRINT_ELEMENT_ALL)
 	#endif
 	
+	
+#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
+	declare net_linkstate as byte
+	net_linkstate=0
+	x = NO
+	
+	
+	if wln.autoconnect <> YES then
+		wln.autoconnect = YES
+		x = YES
+	end if
+	
+	if wln.autoconnectssid <> param_wa then
+		stg_set("WA",0, wln.autoconnectssid) 
+		x = YES
+	end if
+	
+	if wln.autoconnectpassword <> wln_password then
+		stg_set("WP",0, wln.autoconnectpassword) 
+		x = YES
+	end if
+	
+	if wln.autodhcp <> param_wd then
+		stg_set("WD",0, wln.autodhcp) 
+		x= YES
+	end if 
+	
+	if sys.debugmode <> PL_SYS_DBG_NET then
+		sys.debugmode = PL_SYS_DBG_NET
+	end if
+	
+	if x = yes then 
+		sys.reboot
+	end if 
+	
+	'Try to replace with Wi-Fi
+ 	if wln_already_started=NO then
+		#if DEV_DEBUG_PRINT
+			dev_debugprint("Start Wi-Fi")
+		#endif
+		num_wln_failures=0					
+		wln_error=NO
+		wln_already_started=YES
+		
+	end if
+	
+	interface_ready(PL_SOCK_INTERFACE_WLN)=YES
+	change_current_interface(PL_SOCK_INTERFACE_WLN)
+	 
+	
+	'255 means Wi-Fi already fail and then we should allow GPRS to start (if enabled)
+	if num_wln_failures<>255 and wln_error=NO then
+		exit sub 
+	end if
+#endif 
 	
 	exit sub 'boot completed!-----
  

@@ -88,6 +88,7 @@ public sub print_routing_data(channel_num as byte, fragment_num as print_routing
 		if ser.interface=PL_SER_SI_FULLDUPLEX then print_str="Full-duplex" else print_str="Half-duplex"
 	
 	case PRD_BR:  'Baudrate
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
 		if ser.baudrate<=ser.div9600 then
 			i=ser.div9600/ser.baudrate
 			select case i
@@ -125,6 +126,35 @@ public sub print_routing_data(channel_num as byte, fragment_num as print_routing
 				print_str="28800bps"
 			end select
 		end if
+#else 
+
+		select case ser.baudrate
+		case PL_SER_BAUD_300:
+			print_str="300bps"
+		case PL_SER_BAUD_1200:
+			print_str="1200bps"
+		case PL_SER_BAUD_2400:
+			print_str="2400bps"
+		case PL_SER_BAUD_4800:
+			print_str="4800bps"
+		case PL_SER_BAUD_9600:
+			print_str="9600bps"
+		case PL_SER_BAUD_19200:
+			print_str="19200bps"
+		case PL_SER_BAUD_38400:
+			print_str="38400bps"
+		case PL_SER_BAUD_57600:
+			print_str="57600bps"
+		case PL_SER_BAUD_115200:
+			print_str="115200bps"
+		case PL_SER_BAUD_230400:
+			print_str="230400bps"
+		case PL_SER_BAUD_460800:
+			print_str="460800bps"
+		case PL_SER_BAUD_921600:
+			print_str="921600bps"
+		end select	 
+#endif 
 
 	case PRD_FC:  'Flow Control
 		if ser.flowcontrol=DISABLED then

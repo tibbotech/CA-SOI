@@ -161,6 +161,7 @@ sub lcd_display_page(page as enum_lcd_pages, mode as enum_lcd_print_modes, eleme
 	
 	select case lcd_current_page
 	case LCD_PAGE_NET:
+	#if NET_AVAILABLE
 		if net.linkstate=PL_NET_LINKSTAT_NOLINK then
 			lcd_print_icon("ethernet_unplugged.bmp")
 			lcd_print_top_text("UNPLUGGED")
@@ -169,6 +170,7 @@ sub lcd_display_page(page as enum_lcd_pages, mode as enum_lcd_print_modes, eleme
 			lcd_print_dhcp(PL_SOCK_INTERFACE_NET)
 			lcd_print_ip(net.ip)
 		end if
+	#endif
 		
 	case LCD_PAGE_WLN:
 		if wln_already_started=YES then	
@@ -264,6 +266,7 @@ sub lcd_display_page(page as enum_lcd_pages, mode as enum_lcd_print_modes, eleme
 
 			if element=LCD_PRINT_ELEMENT_ALL or element=LCD_PRINT_ELEMENT_CH_OTF then
 				dim i as word
+#if PLATFORM_ID<>WS1101	and PLATFORM_ID <> WS1102			
 				if ser.baudrate<=ser.div9600 then
 					i=ser.div9600/ser.baudrate
 					select case i
@@ -301,6 +304,34 @@ sub lcd_display_page(page as enum_lcd_pages, mode as enum_lcd_print_modes, eleme
 						s="28800"
 					end select
 				end if
+#else 
+				select case ser.baudrate
+					case PL_SER_BAUD_300:
+						s="300bps"
+					case PL_SER_BAUD_1200:
+						s="1200bps"
+					case PL_SER_BAUD_2400:
+						s="2400bps"
+					case PL_SER_BAUD_4800:
+						s="4800bps"
+					case PL_SER_BAUD_9600:
+						s="9600bps"
+					case PL_SER_BAUD_19200:
+						s="19200bps"
+					case PL_SER_BAUD_38400:
+						s="38400bps"
+					case PL_SER_BAUD_57600:
+						s="57600bps"
+					case PL_SER_BAUD_115200:
+						s="115200bps"
+					case PL_SER_BAUD_230400:
+						s="230400bps"
+					case PL_SER_BAUD_460800:
+						s="460800bps"
+					case PL_SER_BAUD_921600:
+						s="921600bps"
+				end select	 
+#endif 				
 
 				if ser.bits=PL_SER_BB_7 then
 					s=s+"-7"
