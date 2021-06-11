@@ -28,8 +28,8 @@ The following table details the feature availability for various Tibbo devices (
       <td width="11%">WS1102</td>
       <td width="10%">DS1100</td>
       <td width="10%">DS1101</td>
-      <td width="11%">DS1102</td>
-      <td width="13%">TPP/TPS3 (G2)</td>
+      <td width="10%">DS1102</td>
+      <td width="14%">TPP/TPS3 (G2)</td>
       <td width="11%">EM2000/ EM2001</td>
     </tr>
   <tbody>
@@ -182,7 +182,7 @@ to be able to see your device._
 
 ## Configuring the VSP-device link
 
-To configure a Virtual Serial Port (VSP) for use with your device, launch the [Connection Wizard](/soi/software.html#connection-wizard) (it is a part of the TDST) and follow these steps:
+To configure a Virtual Serial Port (VSP) for use with your device, launch the [Connection Wizard](https://tibbo.com/soi/software.html#connection-wizard) (it is a part of the TDST) and follow these steps:
 
 <img src="./READMEImages/connection_wizard_01.png">
 
