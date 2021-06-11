@@ -1,133 +1,243 @@
 # Serial-over-IP (SoI) Application
 
-**NEW! Our SoI app has been updated to support the WA2000 Wi-Fi/BLE add-on module.**
-
-## About the Application
-
-Many Tibbo customers first came to know us by our fixed-function device servers (such as the [DS203](http://tibbo.com/store/soi/controllers.html#ds203)) and modules ([EM203](http://tibbo.com/store/modules/em203.html)). This project is a serial-over-IP (SOI) application written in Tibbo BASIC. It runs on our BASIC-programmable devices, such as the new [DS110x](http://tibbo.com/store/controllers.html) family of programmable serial controllers. The application closely resembles our fixed SOI firmware.
-
-Notable additions are:
-
-- Support for the OLED display of [DS1101](http://tibbo.com/store/controllers/ds1101.html) and [DS1102](http://tibbo.com/store/controllers/ds1102.html) devices.
-- Wi-Fi and GPRS support with seamless switching between Ethernet, WiFi, and GPRS.
-- Web admin interface — setup your devices via the web browser;
-- Multi-port and [multi-channel](http://tibbo.com/programmable/controllers.html#comp_table) operation;
-
-Notable limitations:
-
-- No support for start and end characters on the serial side.
-- No LinkServer support.
-
-Like our fixed firmware devices, the SOI application works with our [Tibbo Device Server Toolkit](http://tibbo.com/support/downloads/tide.html) (TDST). We have a separate [Serial-over-IP Solutions Manual](http://docs.tibbo.com/soism/) that explains everything in detail. Material on this page is meant as a simple introduction on how to use this SoI Tibbo BASIC application. We also briefly explain new stuff, like the **OLED display** or the **interface switchover**.
-
-**As an example,** we will setup one serial port of the [DS1101](http://tibbo.com/store/controllers/ds1101.html) device to operate with a virtual serial port (VSP, a.k.a. "virtual COM") of the PC. There are many other device server usage scenarios which we will not talk about here.
-
-
-
 ![](READMEImages/ds110x_display-large.jpg)
 
+## About the SoI Application
 
+Many Tibbo customers first came to know us by our fixed-function Serial-over-IP (SoI) devices, a.k.a. Serial-to-IP converters, a.k.a. serial device servers.
+Examples of such converters are the [DS203](https://tibbo.com/store/controllers/ds203.html) device server and the [EM203](https://tibbo.com/store/modules/em203.html) module.
+These products are supplied with traditional "fixed" firmware.
 
-## Preparing the DS1101
+This project is a Serial-over-IP (SoI) application written in Tibbo BASIC. It runs on our BASIC/C-programmable devices,
+such as the [DS/WS110x](https://tibbo.com/store/controllers.html) family of programmable serial controllers.
+The features offered by the SoI application closely resemble, and in many cases, exceed those of our fixed SoI firmware.
 
-DS1101 devices ship with this SoI application preloaded and properly initialized. Just in case yours had it differently or was already used to run something else, here is what you do to prep the app:
+Notably, the SoI application additionally supports:
+* Up to four serial ports (channels)
+* Wi-Fi and 4G communications
+* Device configuration via BLE and the L.U.I.S. app ([iOS](https://apps.apple.com/app/luis/id1450127637), [Android](https://play.google.com/store/apps/details?id=com.tibbo.tibboble), and [web](https://apps.tibbo.com/luis))
+* Configuration via a browser
+* Status indication on a display
 
-- Download and install the [Tibbo Device Server Toolkit (TDST)](http://tibbo.com/support/downloads/tide.html) software for Windows. Install the latest version even if you already had TDST installed on your PC.
-- Load the application using [Device Explorer](http://tibbo.com/support/downloads/tide.html). Subsequent upgrades of this application can be done via the DS Manager (part of the TDST).
-- When you first run the application the device will enter the **error mode**, which means that it's setting (which are stored in the EEPROM) require initialization. The error mode is indicated by blinking red status LED. Devices with display will also have the following message on the screen:
+The following table details the feature availability for various Tibbo devices (not all supported devices are shown):
 
-*Note: SoI application automatically switches the display off after a certain timeout. To turn the display on, briefly press the MD button.*
+<table style="text-align: center">
+  <thead>
+    <tr>
+      <td width="23%">Feature</td>
+      <td width="11%">WS1102</td>
+      <td width="10%">DS1100</td>
+      <td width="10%">DS1101</td>
+      <td width="11%">DS1102</td>
+      <td width="13%">TPP/TPS3 (G2)</td>
+      <td width="11%">EM2000/ EM2001</td>
+    </tr>
+  <tbody>
+    <tr>
+      <td>No. of serial ports (channels)</td>
+      <td colspan="2">1 port</td>
+      <td>3.5 channels</td>
+      <td>3 channels</td>
+      <td colspan="2">4 ports</td>
+    </tr>
+    <tr>
+      <td>Wi-Fi</td>
+      <td>Yes</td>
+      <td>No</td>
+      <td colspan="4">Yes*</td>
+    </tr>
+    <tr>
+      <td>4G (LTE) / Cat-M1 / NB-IoT</td>
+      <td colspan="4">No</td>
+      <td colspan="2">Yes*</td>
+    </tr>
+    <tr> 
+      <td>Configuration via BLE</td>
+      <td>Yes</td>
+      <td colspan="5">No</td>
+    </tr>
+    <tr>
+      <td>Configuration via Browser</td>
+      <td colspan="6">Yes</td>
+    </tr>
+    <tr>
+      <td>Status Display</td>
+      <td colspan="2">No</td>
+      <td colspan="2">Yes*</td>
+      <td colspan="2">No</td>
+    </tr>
+</table>
 
-When there is a display:
+_* Requires optional hardware_<br><br>
 
-- If the display is off, briefly press the MD button to turn the display on.
-- When in the "ERROR MODE" screen, press and hold the MD button until you see the "INIT COMPLETE" message.
-- Reboot (power-cycle) the device.
+Like all Tibbo device servers, the SoI application works with the [Tibbo Device Server Toolkit (TDST)](https://tibbo.com/support/downloads/tide.html).
+We have a separate [Serial-over-IP Solutions Manual](http://docs.tibbo.com/soism/) that explains everything in detail. 
+Material on this page is meant as a simple introduction on how to use this SoI Tibbo BASIC application. 
 
-When there is no display:
+The explanation focuses on two supported devices:
+the [DS1101](https://tibbo.com/store/controllers/ds1101.html) and the new **fully wireless** [WS1102](https://tibbo.com/store/controllers/ws1102.html) serial controller.
+Other devices are not covered, but their configuration is very similar to what is described here.
 
-- Press the MD button once to enter the serial programming mode (red and green status LEDs blinking).
-- Press and hold to initialize.
-- Wait until the green status LED is turned on.
-- Reboot (power-cycle) to complete the initialization.
+---
 
-After the reboot you should be able to see your device in the DS Manager. Initialized devices have their DHCP turned off, so your DS1101's IP will be 1.0.0.1.
+## Preparing your device
 
-***Note:** from time to time our users encounter firewall issues. You may have to disable your firewall (or allow UDP traffic on port 65535) for the DS Manager to be able to see your DS1101.*
+### Connecting the DS1101 to your Ethernet network
 
+The DS1101 has an Ethernet interface. It is connected as soon as you plug a live Ethernet cable into the DS1101.
+Once the DS1101 is connected to an Ethernet switch (router), its yellow Link LED turns on.
 
+### Uploading the SoI app
 
-![](READMEImages/ds1000_ds_man.jpg)
+All [DS/WS110x family devices](https://tibbo.com/store/controllers.html) ship with the SoI application preloaded and properly initialized.
+If you need to reload and reinitialize the application — for example, in case your device was used to run something else — follow the steps below.
 
+* Download and install the latest version of the [Tibbo Device Server Toolkit (TDST)](https://tibbo.com/support/downloads/tdst.html) software for Windows.
+* Upload the SoI app binary (.BIN) into your DS1101 using the [Device Explorer](https://tibbo.com/support/downloads/tide.html).
 
+Subsequent firmware upgrades can also be performed via [DS Manager](https://tibbo.com/soi/software.html#ds-manager) (part of the TDST).
 
-## Setting the IP address
+### Initializing SoI Settings
+When you first run the application, the device might enter the **error mode**, which means that its settings (programmable parameters stored in the EEPROM) require initialization.
+The error mode is indicated by a blinking red status LED. Devices with a display will also have the following message on the screen: "ERROR MODE! Press & hold to reinitialize the device."
+To fix this, initialize the SoI settings:
+* If your device has a display
+  * Briefly press the MD button to turn the display on
+  * When at the "ERROR MODE" screen, press and hold the MD button until you see the "INIT COMPLETE" message
+  * Reboot (power-cycle) the device to complete the initialization
+* If your device has no display
+  * Press the MD button once to enter the serial programming mode (red and green status LEDs blinking)
+  * Press and hold the MD button
+  * Wait until the green status LED turns on (initialization finished)
+  * Reboot (power-cycle) the device to complete the initialization
 
-- Find your DS1101 in the DS Manager's list, click **Settings**.
-- Enable DHCP or set the desired IP address.
-- Click **OK**.
-- The DS1101 will reboot with the new IP/DHCP configuration. You can click **Refresh** to see what IP address is actually being used by the DS1101 now.
+After the reboot, you should be able to see your device in DS Manager. Initialized devices have their DHCP turned off, so your DS1101's IP will be 1.0.0.1.
 
-## Using web admin
+<img src="./READMEImages/ds_manager.png">
 
-Once your devices has a same IP address and you know what it is you can also use your web browser to setup the DS1101. Point the browser to the target IP address and the rest is obvious.
+<br>
 
-*Hint: there is no password, just click **Login**. You can set the password later.*
+_**Note:** From time to time, our users encounter firewall issues. You may have to disable your firewall (or allow UDP traffic on port 65535) for DS Manager to be able to see your device._
 
-## Configuring the VSP-DS1101 link
+---
 
-- Launch Connection Wizard (it is a part of the TDST).
-- On the first screen, select "Create a link between a Virtual Serial Port and a Device Server". Click **Next**.
-- Select the number of the VSP (virtual COM) you want to use. For example, select "Create new VSP" and choose **COM3** from the drop-down list (assuming that COM3 is unused on your PC). Click **Next**.
-- Point at your device server. Click **Select** from the list and double-click on your DS1101 in the DS Manager's screen. Do not change anything else. Click **Next**.
-- Select the channel (on the DS1101) the VSP on your PC will be communicating with. Click **Next** when done.
-- Select which side (DS1101 or VSP) will send the data first. There are some configuration differences associated with this, but we won't go into such minute details here. "Any side" is a safe bet, so choose that and click **Next**.
-- Next is the **Gateway and netmask settings** screen. Assuming that your DS1101 is plugged into the same network segment with your PC this screen will be skipped. Click **Next**.
-- **Transport protocol and listening ports** screen. Everything you (normally) need is selected by default. You are going to use TCP/IP, and you don't really care about ports as long as everything works. Click **Next**.
-- **On-the-fly commands** screen. These commands do a lot, but most importantly they configure the serial channel on your DS1101 as requested by the software that is using your virtual COM. For example, if an application wants 115200bps, then it will "tell" the (virtual) COM, and virtual COM will send an on-the-fly command to the DS1101 telling it to switch designated serial port to 115200bps. Got it? So, don't touch the default choice and click **Next**.
-- **Serial settings for the device server** screen. No need to do anything here. We have on-the-fly commands enabled. Click **Next**.
-- Now you are at the summary screen. You can review how the virtual COM and your DS1101 will be set. Click **Finish** and you are done!
+### Connecting the WS1102 to your Wi-Fi network
 
+The WS1102 is a wireless device, so it has to be configured for connecting to your Wi-Fi network (access point).
+The Wi-Fi settings are stored in a Device Configuration Block (DCB) located in the flash memory.
+You must have the device connected to your Wi-Fi network before proceeding with anything else.
 
+The procedure below explains the configuration process through the BLE interface.
+The assumption is that you have the SoI Companion App present on the WS1102 as APP0 (every WS1102 ships with this app preloaded).
 
-![](READMEImages/ds1000_con_wiz.jpg)
+The steps:
+* Install the L.U.I.S. app ([iOS](https://apps.apple.com/app/luis/id1450127637), [Android](https://play.google.com/store/apps/details?id=com.tibbo.tibboble)) on your smartphone.
+<img src="./READMEImages/monitor-loader_app0_select.svg" width="600px">
 
+* Power off your WS1102. Press and hold the MD button, then power the device back on.
+* Wait at least 3 seconds for the red status LED to turn off. When the green status LED turns on, release the MD button.
+* Open the L.U.I.S. app and select your WS1102. You will be presented with a configuration screen (shown on the right).
+* In the configuration screen, set the following parameters:
+    * **Access Point Name** should be set to the SSID of your Wi-Fi network (access point). This field is case-sensitive.
+    * **Password** should match the password of your Wi-Fi network (access point). This field is case-sensitive.
+    * **DHCP** would normally be enabled. Alternatively, set the desired...
+    * ...**IP-address** (and if your device will be accessing outside of your LAN, you will also need to configure the **Gateway IP-address** and **Subnet mask**).
 
+Once the WS1102 associates with your Wi-Fi network, its yellow Link LED turns on.
 
-## Testing the VSP-DS1101 link
+### Uploading the SoI app
 
-Any "serial terminal" software will do and may we suggest our very own [I/O Ninja](http://tibbo.com/ninja.html).
+All [DS/WS110x family devices](https://tibbo.com/store/controllers.html) ship with the SoI application preloaded and properly initialized.
+If you need to reload and reinitialize the application — for example, in case your device was used to run something else — follow the steps below.
 
-- Download and install I/O Ninja.
-- Select **File** > **New Session**.
-- Choose **Serial** and click **OK**.
-- Select your VSP and click **Open Port** (the lightning-bolt icon).
-- I/O Ninja is now ready to send the data to the DS1101. ***Note:** our TDST software includes a Tibbo Monitor, which you can find in the system tray. This Tibbo Monitor maintains a log of virtual COM activity. Observe what happens when you open/close the port in I/O Ninja, change baudrate, etc.*
+The explanation below shows how to upload the SoI app via the Wi-Fi interface.
+It is also possible to upload the SoI app into the WS1102 via the BLE interface using .TCU files.
+For step-by-step instructions on BLE uploads, see our [documentation](https://docs.tibbo.com/phm/ml_ble).
 
+The steps:
+* Download and install the latest version of the [Tibbo Device Server Toolkit (TDST)](https://tibbo.com/support/downloads/tdst.html) software for Windows.
+* Upload the SoI app binary (.BIN) into your WS1102 using [Device Explorer](https://tibbo.com/support/downloads/tide.html).
 
+Subsequent firmware upgrades can also be performed via [DS Manager](https://tibbo.com/soi/software.html#ds-manager) (part of the TDST).
 
-## Working with Wi-Fi and GPRS
+### Initializing SoI Settings
+When you first run the application, the device might enter the **error mode**, which means that its settings (programmable parameters stored in the EEPROM) require initialization.
+The error mode is indicated by a blinking red status LED. To fix this, initialize the SoI settings:
 
-This SOI application supports Wi-Fi and GPRS interfaces. The way it works, the app will try to choose the **best** interface among available and enabled interfaces.
+* Press the MD button once to enter the serial programming mode (red and green status LEDs blinking)
+* Press and hold the MD button
+* Wait until the green status LED turns on (initialization finished)
+* Reboot (power-cycle) the device to complete the initialization
 
-The highest priority is always given to the Ethernet interface. It will be "active" for as long as there is a live cable plugged into the device. Unplug the cable, and your device will look for alternatives.
+After the reboot, you should be able to see your device in DS Manager. If your WS1102 is running with DHCP turned off, it will use the fixed IP address you set earlier.
 
-If there is a Wi-Fi interface, and it is enabled, your device will try to use it. Failing that, the device will turn to GPRS, again, if it is available and enabled. Plug the Ethernet cable back into the device, and the app will switch over to using it again.
+<img src="./READMEImages/ds_manager.png">
 
-The DS1101 can be optionally outfitted with the Wi-Fi interface ([GA1000](http://tibbo.com/store/wireless/ga1000.html) ad-on module). Assuming your device has it, let's go over the settings:
+<br>
 
-- Wi-Fi Mode:
-  - *Permanent* means that Wi-Fi is always on. As soon as the device boots it will activate the GA1000 and attempt to associate with the network. This doesn't mean the link is *used*, only that it's on. As long as the device has a wired connection, that connection will be used. As soon as the Ethernet cable is unplugged, the device will hop over to Wi-Fi instantly, with no set-up time required since it's already associated. Note that each network interface will have a different IP address, so you won't be able to access the device's Ethernet IP when its cable has been disconnected. You would need to know (and use) the IP of the Wi-Fi interface.
-  - *On demand* means the GA1000 is normally off. As soon as the device loses Ethernet connectivity, it fires up the GA1000 and attempts to associate wirelessly. Once the Ethernet link becomes available again, the device automatically shuts down the GA1000 and resumes wired operation. This mode is useful for conserving power.
-- **Access Point Name:** That's the name of the access point you're trying to connect to. Be sure to get it right — it's case-sensitive.
-- **Security:** You must select the security type your access point is using. If you're not sure what that is, try checking the access point configuration — it is always listed there. **Note:** When using WPA or WPA2, the first association with a new network for about 1.5 minutes. Both the green and red status LED will be on during this time, and the device will be busy crunching away some serious math. This is a one-time delay: once done, future associations will be very fast.
-- **Password:** This is case-sensitive, of course. **Note:** ASCII passwords for WEP are *not* supported. If you're using WEP, you must enter a hexadecimal password (ten characters long).
-- **DHCP and other network settings:** Nothing Wi-Fi specific here. These are the same settings you already know from wired connections. We advise enabling DHCP unless you have a specific reason not to do so. **Note:** Do *not* attempt to set the same IP address for both the wired and wireless adaptors. It's not going to work. The Wi-Fi interface is a separate interface, so it must have its own IP.
+_**Note:** From time to time, our users encounter firewall issues. You may have to disable your firewall (or allow UDP traffic on port 65535) for DS Manager
+to be able to see your device._
 
+---
 
+## Configuring the VSP-device link
 
-![](READMEImages/settings_wifi.jpg)
+To configure a Virtual Serial Port (VSP) for use with your device, launch the [Connection Wizard](/soi/software.html#connection-wizard) (it is a part of the TDST) and follow these steps:
 
-## Need more information?
+<img src="./READMEImages/connection_wizard_01.png">
 
-Read our [Serial-over-IP Solutions Manual](http://docs.tibbo.com/soism/)!
+On the first screen, select **Create a link between a Virtual Serial Port and a Device Server**.
+
+<img src="./READMEImages/connection_wizard_02.png">
+
+Decide on the virtual serial port (number) you want to use.
+
+<img src="./READMEImages/connection_wizard_03.png">
+
+Click __Device Server is accessible from this PC__ and check (enable) __Enable MAC --> IP mapping__. After that, click on __Select from the list__ button.
+__DS Manager__ will appear.
+
+_Note: This assumes the simplest scenario — your PC and the SoI device are located on the same local network segment. **Connection Wizard** can handle much more complex arrangements, but explaining those falls outside the scope of this simple walkthrough._
+
+<img src="./READMEImages/connection_wizard_04.png">
+
+In __DS Manager__, double-click on your device in the list. When you return to the __Connection Wizard__, do not change anything else; just click **Next**.
+
+<img src="./READMEImages/connection_wizard_05.png">
+
+You will only see this screen if your device has more than one serial port or channel.
+Therefore, the screen will be shown for the DS1101 (it has 3.5 channels) and won't appear for a single-port WS1102. Select the serial port or channel of the SoI device. This will be the port (channel) with which your VPS will be communicating.
+
+<img src="./READMEImages/connection_wizard_06.png">
+
+Select which side — the SoI device or the VSP — will be sending the data first. There are some configuration differences associated with this, but we won't go into such minute details here. Selecting __Any side__ is a safe bet in most cases.
+
+<img src="./READMEImages/connection_wizard_07.png">
+
+You don't have to alter any defaults appearing on this screen.
+
+<img src="./READMEImages/connection_wizard_08.png">
+
+On-the-fly commands do a lot, but most importantly, they configure the serial port (channel) of your SoI device as requested by the software using your virtual COM. Keep the default __Yes, enable on-the-fly commands__ selection!
+
+<img src="./READMEImages/connection_wizard_09.png">
+
+Click __Configure__ to finish the configuration.
+
+<img src="./READMEImages/connection_wizard_10.png">
+
+That's it! You are done. Your SoI device is now configured as a remote COM port of your PC!
+
+---
+
+## Testing the VSP-device link
+
+Any "serial terminal" software will do — we suggest our very own [IO Ninja](https://ioninja.com).
+
+* Download and install **IO Ninja**
+* Select **File** > **New Session**
+* Choose **Serial** and click **OK**
+* Select your VSP and click **Open Port** (the lightning bolt icon).
+* **IO Ninja** is now ready to send data to the device
+
+_**Note:** Our TDST software includes the __Tibbo Monitor__; it is found in the system tray. __Tibbo Monitor__ maintains a log of all VSP activity. Observe what happens when you open and close your VSP port in __IO Ninja__, change the baudrate, etc._
