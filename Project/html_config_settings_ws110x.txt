@@ -18,6 +18,7 @@ bits2109876543210
 >>&b0000000000000	PW	Login Password					S,I,6	^
 >>&b0000000000000	ON	Owner Name						S,I,8	^
 >>&b0000000000000	DN	Device Name 					S,I,8	^
+>>&b0000000000000	SI	Serial Interface 				B,L,0-Full-duplex (RS232);1-Half-duplex (RS485);2-Full-duplex (RS422);	^
 >>&b0000000000000	WA	Access Point Name				S,I,24	^
 >>&b0000000000000	WP	Password						S,I,26	^
 >>&b0000000000000	WC	Domain							B,L,6-AU;11-BR;14-CA;17-CN;27-EU;40-IL;42-JP;59-RU;70-TW;71-TR;72-UK;75-US;	^

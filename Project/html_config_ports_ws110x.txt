@@ -18,12 +18,11 @@ bits09876543210
 >>&b00000000000	IB	Inband Commands 								B,L,0-Disabled;1-Enabled;	^
 >>&b00000000000	RM	Routing Mode 									B,L,0-Server (Slave);1-Server OR Client (Master);2-Client only;	^
 >>&b00000000000	SF	Accept Connection From 							B,L,0-Any IP-address;1-IP matching destination IP-address;	^
->>&b00000000000	PN	Port							S,I,5	^
+>>&b00000000000	PN	Port											S,I,5	^
 >>&b00000000000	CM	Connection Mode 								B,L,0-Immediately (on powerup);1-On data OR command;2-On command only;3-On command OR DSR=HI;	^
 >>&b00000000000	DI	Destination IP-address 							S,I,15	^
 >>&b00000000000	DP	Destination Port								S,I,5	^
->>&b00000100000	SI	Serial Interface 								B,L,0-Full-duplex (RS232);1-Half-duplex (RS485);2-Full-duplex (RS422);	^
->>&b00000000000	FC	Flow Control							B,L,0-Disabled OR remote;1-Enabled, RTS/CTS;2-Enabled, XON/XOFF;	^
+>>&b00000000000	FC	Flow Control									B,L,0-Disabled OR remote;1-Enabled, RTS/CTS;2-Enabled, XON/XOFF;	^
 >>&b00000000000	DT	DTR Mode 										B,L,0-Idle OR remote;1-Indicate connection status;	^
 >>&b00000000000	DS	Power-up DTR State 								B,L,0-LOW;1-HIGH;	^
 >>&b00010000000	BR	Baudrate										B,L,0-1200bps;1-2400bps;2-4800bps;3-9600bps;4-19200bps;5-38400bps;6-57600bps;7-115200bps;8-150bps;9-300bps;10-600bps;11-28800bps;	^
