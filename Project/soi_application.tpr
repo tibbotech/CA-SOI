@@ -1,11 +1,11 @@
 [project]
 version=1
-platform=WS1102
-src_lib_ver=2_01_04
-name=soi_application-4_35
-output=soi_application-4_35.tpc
+platform=DS1102N
+src_lib_ver=2_01_05
+name=soi_application-4_36
+output=soi_application-4_36.tpc
 debug=off
-defines= /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_FD=FD_ENABLED /dOBJECT_KP=KP_ENABLED /dOBJECT_WLN=WLN_ENABLED
+defines=/dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_FD=FD_ENABLED /dOBJECT_WLN=WLN_ENABLED /dOBJECT_KP=KP_ENABLED
 transport=udp_winpcap
 [address1]
 platform=DS1100
@@ -171,6 +171,10 @@ address=156.101.249.54.90.98
 platform=WS1102
 transport=udp_winpcap
 address=156.101.249.54.90.98
+[address42]
+platform=EM1001W
+transport=udp_winpcap
+address=0.1.2.3.4.100
 [file1]
 path=main.tbs
 type=basic

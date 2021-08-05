@@ -360,7 +360,7 @@ public sub boot
 	#endif
 	 
 	#if SIGNAL_STRENGTH_INDICATION
-	#if PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102 
+	#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102 
 		init_io_expander()
 	#endif
 		signal_strength_indication_init() 
