@@ -479,9 +479,9 @@ S
 	#if PLATFORM_ID = EM510W
 		includepp "settings_1p_em510.xtxt"
 	#elif PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102
-		includepp "settings_1p_ws110x.xtxt"
-	#else 
 		includepp "settings_1p.xtxt"
+	#else 
+		includepp "settings_1p_ws110x.xtxt"
 	#endif 
 #endif
 
@@ -499,7 +499,7 @@ include "html_common.tbh"
 include "dsman.tbh"
 include "lcd.tbh"
 
-#if PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102
+#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
 include "ssi\trunk\ssi.tbh"
 include "libraries\super_i2c.tbh"
 include "libraries\tbt41.tbh"

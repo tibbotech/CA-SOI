@@ -1,16 +1,16 @@
 [project]
 version=1
-platform=DS1102N
+platform=DS1100
 src_lib_ver=2_01_05
 name=soi_application-4_36
 output=soi_application-4_36.tpc
-debug=off
-defines=/dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_FD=FD_ENABLED /dOBJECT_WLN=WLN_ENABLED /dOBJECT_KP=KP_ENABLED
+debug=on
+defines= /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_FD=FD_ENABLED /dOBJECT_KP=KP_ENABLED /dOBJECT_WLN=WLN_ENABLED
 transport=udp_winpcap
 [address1]
 platform=DS1100
 transport=udp_winpcap
-address=156.101.249.54.81.238
+address=0.0.0.208.55.57
 [address2]
 platform=DS1101W
 transport=udp_winpcap
@@ -18,7 +18,7 @@ address=0.1.2.3.8.201
 [address3]
 platform=DS1102W
 transport=udp_winpcap
-address=0.36.119.81.16.150
+address=0.36.119.83.6.35
 [address4]
 platform=DS1202
 transport=udp_winpcap
@@ -114,7 +114,7 @@ address=0.0.0.134.127.128
 [address27]
 platform=DS1102N
 transport=udp_winpcap
-address=0.0.0.134.127.128
+address=0.36.119.83.6.35
 [address28]
 platform=TPP2N
 transport=udp_winpcap
@@ -698,7 +698,7 @@ location=project
 path=settings_1p_em510.xtxt
 type=xtext
 format=STG_lib_configurator
-condition=
+condition=PLATFORM_ID = EM510W
 locked=no
 location=project
 [file67]
@@ -789,6 +789,6 @@ location=project
 path=settings_1p_ws110x.xtxt
 type=xtext
 format=STG_lib_configurator
-condition=
+condition=PLATFORM_ID = WS1101 OR PLATFORM_ID = WS1102
 locked=no
 location=project
