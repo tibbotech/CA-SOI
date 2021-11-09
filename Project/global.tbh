@@ -478,10 +478,10 @@ S
 #else
 	#if PLATFORM_ID = EM510W
 		includepp "settings_1p_em510.xtxt"
-	#elif PLATFORM_ID <> WS1101 or PLATFORM_ID <> WS1102
-		includepp "settings_1p.xtxt"
-	#else 
+	#elif PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
 		includepp "settings_1p_ws110x.xtxt"
+	#else 
+		includepp "settings_1p.xtxt"	
 	#endif 
 #endif
 
