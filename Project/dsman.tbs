@@ -1849,7 +1849,14 @@ public sub ser_cmd_proc(byref cmd_str as string,cmd_source_ser_port as word,erro
 				if cs_0<>cs_1 then goto reply_err
 				reply_str=ddstr(mid(s,2,6))
 				goto reply_ok_have_data
-
+#if PLATFORM_ID=WS1102
+			case "B"
+				reply_str = bt.mac
+				goto reply_ok_have_data
+			case "W"
+				reply_str = wln.mac
+				goto reply_ok_have_data
+#endif 
 			case else:
 			end select
 
