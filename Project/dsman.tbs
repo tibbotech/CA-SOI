@@ -211,6 +211,14 @@ public sub net_cmd_proc(byref s as string(MAX_NET_CMD_LEN), cmd_mode as cmd_mode
 	if left(s,1)<>"D" then
 		x=instr(1,s,CMD_ESC_CHAR,1)
 		if x>0 then
+			'escchar found, check if item has multiple member
+			if left(s,1)="S" then
+				setting_name=mid(s,2,2)
+				if setting_name="WA" or setting_name="WP" then
+					goto skip_explicit_index_check
+				end if
+			end if
+			
 			'yes, the sequence is included -- extract it
 			index=val(mid(s,x+1,1))
 			s2=right(s,len(s)-x-1)
@@ -220,7 +228,7 @@ public sub net_cmd_proc(byref s as string(MAX_NET_CMD_LEN), cmd_mode as cmd_mode
 			explicit_index=YES
 		end if
 	end if
-
+skip_explicit_index_check:
 	if cmd_src_valid=YES then reset_login_timeout() 'resets timeouts
 
 	select case left(s,1)
