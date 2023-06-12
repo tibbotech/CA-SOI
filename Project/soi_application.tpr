@@ -2,9 +2,9 @@
 version=1
 platform=WS1102
 src_lib_ver=2_01_05
-name=soi_application-4_37
-output=soi_application-4_37.tpc
-debug=on
+name=soi_application-4_38
+output=soi_application-4_38.tpc
+debug=off
 defines= /dLCD_TYPE=SOLOMON_SSD1305 /dOBJECT_LCD=LCD_ENABLED /dOBJECT_FD=FD_ENABLED /dOBJECT_KP=KP_ENABLED /dOBJECT_WLN=WLN_ENABLED
 transport=udp_broadcast
 [address1]
