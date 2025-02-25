@@ -429,7 +429,7 @@ init_now:			'already in the serial login mode -- this is init
 		if param_rm(f)<>RM_SERVER and param_cm(f)=CM_COMMAND_DSR then
 			sock.num=sock_comm(f)
 			io.num=dsr_mapping(f)
-			if io.state=LOW then
+			if io.state=HIGH then
 				'connection is supposed to be off
 				if sock.statesimple=PL_SSTS_EST then
 					sock.close
@@ -655,9 +655,9 @@ sub on_sock_event(newstate as pl_sock_state, newstatesimple as pl_sock_state_sim
 			if param_dt(f)=YES then
 				io.num=dtr_mapping(f)
 				if newstatesimple=PL_SSTS_EST then
-					io.state=HIGH
-				else
 					io.state=LOW
+				else
+					io.state=HIGH
 				end if
 			end if
 
