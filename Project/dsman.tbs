@@ -211,14 +211,6 @@ public sub net_cmd_proc(byref s as string(MAX_NET_CMD_LEN), cmd_mode as cmd_mode
 	if left(s,1)<>"D" then
 		x=instr(1,s,CMD_ESC_CHAR,1)
 		if x>0 then
-			'escchar found, check if item has multiple member
-			if left(s,1)="S" then
-				setting_name=mid(s,2,2)
-				if setting_name="WA" or setting_name="WP" then
-					goto skip_explicit_index_check
-				end if
-			end if
-			
 			'yes, the sequence is included -- extract it
 			index=val(mid(s,x+1,1))
 			s2=right(s,len(s)-x-1)
@@ -228,7 +220,7 @@ public sub net_cmd_proc(byref s as string(MAX_NET_CMD_LEN), cmd_mode as cmd_mode
 			explicit_index=YES
 		end if
 	end if
-skip_explicit_index_check:
+
 	if cmd_src_valid=YES then reset_login_timeout() 'resets timeouts
 
 	select case left(s,1)
@@ -363,7 +355,7 @@ skip_explicit_index_check:
 	
 		reply_str=reply_str+"/"
 	
-		io.num=ser.rtsmap
+		io.num=rts_mapping(index)	'XXXX double check if the lines match with ser.rtsmap
 		if io.state=LOW then
 			reply_str=reply_str+"R"
 		else
@@ -384,7 +376,7 @@ skip_explicit_index_check:
 			reply_str=reply_str+"*"
 		end if
 		
-		io.num=dsr_mapping(index)
+		io.num=dsr_mapping(index)	'XXXX Do we need to change this to HIGH?
 		if io.state=LOW then
 			reply_str=reply_str+"S"
 		else
@@ -762,10 +754,10 @@ d1:			if x>=num_sdf then goto reply_err
 				reply_str=reply_str+"</td></tr>"
 
 				reply_str=reply_str+"<tr><td>CTS</td><td>"
-				if ser.ctsmap=PL_INT_NULL then
+				if cts_mapping(index)=PL_INT_NULL then	'XXXX used ser.ctsmap
 					s2="(unmapped)"
 				else
-					if io.lineget(cts_mapping(index))=HIGH then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
+					if io.lineget(cts_mapping(index))=LOW then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
 				end if
 				reply_str=reply_str+s2
 				reply_str=reply_str+"</td></tr>"
@@ -774,7 +766,7 @@ d1:			if x>=num_sdf then goto reply_err
 				if dsr_mapping(index)=PL_IO_NULL then
 					s2="(unmapped)"
 				else
-					if io.lineget(dsr_mapping(index))=HIGH then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
+					if io.lineget(dsr_mapping(index))=LOW then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"	'XXXX Should it be set to if LOW?
 				end if
 				reply_str=reply_str+s2
 				reply_str=reply_str+"</td></tr>"
@@ -782,10 +774,10 @@ d1:			if x>=num_sdf then goto reply_err
 			case 8:
 
 				reply_str=reply_str+"<tr><td>RTS</td><td>"
-				if ser.rtsmap=PL_IO_NULL then
+				if rts_mapping(index)=PL_IO_NULL then	'XXXX used ser.rtsmap
 					s2="(unmapped)"
 				else
-					if io.lineget(ser.rtsmap)=HIGH then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
+					if io.lineget(rts_mapping(index))=LOW then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
 				end if
 				reply_str=reply_str+s2
 				reply_str=reply_str+"</td></tr>"
@@ -794,7 +786,7 @@ d1:			if x>=num_sdf then goto reply_err
 				if dtr_mapping(index)=PL_IO_NULL then
 					s2="(unmapped)"
 				else
-					if io.lineget(dtr_mapping(index))=HIGH then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
+					if io.lineget(dtr_mapping(index))=LOW then s2="<font color='red'>HIGH<font>" else s2="<font color='green'>LOW<font>"
 				end if
 				reply_str=reply_str+s2
 				reply_str=reply_str+"</td></tr>"
@@ -960,7 +952,7 @@ d1:			if x>=num_sdf then goto reply_err
 					if ser.flowcontrol=ENABLED or ser.interface=PL_SER_SI_HALFDUPLEX then
 						goto reply_ok
 					end if
-					io.num=ser.rtsmap
+					io.num=rts_mapping(index)	'XXXX
 				case else:
 					goto reply_err
 				end select
@@ -976,7 +968,7 @@ d1:			if x>=num_sdf then goto reply_err
 				case 4: 'CTS
 					io.num=cts_mapping(index)
 				case 5: 'RTS
-					io.num=ser.rtsmap
+					io.num=rts_mapping(index)
 				case else:
 					goto reply_err
 				end select
@@ -1128,7 +1120,7 @@ d1:			if x>=num_sdf then goto reply_err
 				param_wa=right(s,len(s)-2)
 				param_ws=WLN_SECURITY_MODE_DISABLED
 				wln_password=""
-				wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)
+				wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,YES,PL_WLN_ASCAN_INFRASTRUCTURE)
 				if wln_recent_status<>WLN_STATUS_OK then
 					goto reply_failed
 				end if

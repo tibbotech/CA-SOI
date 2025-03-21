@@ -137,6 +137,7 @@ public sub boot
 		dsr_mapping(f)=PL_IO_NULL
 		dtr_mapping(f)=PL_IO_NULL
 		cts_mapping(f)=PL_IO_NULL
+		rts_mapping(f)=PL_IO_NULL
 	next f
 
 	'We have to know NOW if GPRS is enabled. If it is then serial port 4 can't be used for communications
@@ -169,6 +170,7 @@ public sub boot
 			cts_mapping(0)=BASE_OF_INT_LINES+SER0_CTS_INT 
 #endif 
 		
+		rts_mapping(0)=SER0_RTS
 		dsr_mapping(0)=SER0_DSR
 		dtr_mapping(0)=SER0_DTR
 		num_ports_in_use=1
@@ -571,9 +573,9 @@ public sub boot
 					wln_init()
 
 				if wln.getmoduletype=PL_WLN_MODULE_TYPE_GA1000 then
-					wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)
+					wln_recent_status=wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,YES,PL_WLN_ASCAN_INFRASTRUCTURE)
 				else 
-					wln_recent_status=wln_start(param_wa,param_ws,stg_get("WP",1),PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)
+					wln_recent_status=wln_start(param_wa,param_ws,stg_get("WP",1),PL_WLN_DOMAIN_FCC,YES,PL_WLN_ASCAN_INFRASTRUCTURE)
 				end if
 				if wln_recent_status<>WLN_STATUS_OK then
 					#if DEV_DEBUG_PRINT
@@ -667,7 +669,7 @@ public sub boot
 		
 			'RTS and DTR lines
 			if ser.rtsmap<>PL_IO_NULL then
-				io.num=ser.rtsmap
+				io.num=rts_mapping(f)
 				io.enabled=YES
 			end if
 			if dtr_mapping(f)<>PL_IO_NULL then
@@ -677,7 +679,7 @@ public sub boot
 				if param_dt(f)=NO then
 					io.state=param_ds(f)
 				else
-					io.state=LOW 'no connection
+					io.state=HIGH 'no connection	'XXXX this should be HIGH
 				end if
 			end if
 			
@@ -738,7 +740,7 @@ public sub boot
 	sock.allowedinterfaces="NET,WLN,PPP"
 	sock.inconmode=PL_SOCK_INCONMODE_ANY_IP_ANY_PORT
 	sock.reconmode= PL_SOCK_RECONMODE_3
-	if sock.txbuffrq(1)<>1 or sock.rxbuffrq(1)<>1 then
+	if sock.txbuffrq(2)<>2 or sock.rxbuffrq(1)<>1 then	'XXXX
 		goto boot_failed
 	end if
 	sys.buffalloc	

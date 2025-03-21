@@ -443,7 +443,7 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 	const SER0_RTS=PL_IO_NUM_2			'must be from pl_io_num range
 	const SER0_DSR=PL_IO_NUM_1_INT1		'must be from pl_io_num range
 	const SER0_DTR=PL_IO_NUM_3			'must be from pl_io_num range
-S
+
 #elif PLATFORM_ID=DS1100
 	const BASE_OF_INT_LINES=PL_IO_NUM_0_CTS_INT0
 	const SER0_CTS_INT=PL_IO_NUM_0_CTS_INT0			'must be from pl_int_num range (NOT pl_io_num)

@@ -13,6 +13,7 @@
 >>&b00000000	I=CT;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT>255?"Maximum timeout is 255 minutes":""
 >>&b00000000	I=TP;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1
 >>&b00000000	I=BU;E=1;D=Broadcast UDP data;T=INT;C=STATIC;O=0- Reject/0/1- Accept/1;S=TP==0?"e":"i"
+>>&b00000000	I=AR;E=1;D=Allow reconnects;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP==1?"e":"i"
 >>&b00000000	I=IB;E=1;D=Inband commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP==1?"e":"i"
 >>&b00000000	I=RM;D=Routing Mode;T=INT;C=STATIC;O=0- Server (Slave)/0/1- Server OR Client (Master)/1/2- Client only/2
 >>&b00000000	I=SF;E=1;D=Accept connection from;T=INT;C=STATIC;O=0- Any IP-address/0/1- IP matching destination IP-address/1;S=RM!=2?"e":"i"

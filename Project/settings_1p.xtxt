@@ -8,6 +8,7 @@
 >>CT	E	B	1	0	99	A	5
 >>TP	E	B	1	0	1	A	0
 >>BU	E	B	1	0	1	A	0
+>>AR	E	B	1	0	1	A	1
 >>IB	E	B	1	0	1	A	0
 >>RM	E	B	1	0	2	A	0
 >>SF	E	B	1	0	1	A	0
@@ -38,7 +39,7 @@
 >>WG	E	D	1	4	4	I	1.0.0.1
 >>WN	E	D	1	4	4	I	0.0.0.0
 #define STG_DESCRIPTOR_FILE "settings_1p.xtxt"
-#define STG_MAX_NUM_SETTINGS 39
+#define STG_MAX_NUM_SETTINGS 40
 #define STG_RAM_ARRAY_SIZE 0
 #define STG_MAX_SETTING_NAME_LEN 2
 #define STG_MAX_SETTING_VALUE_LEN 26

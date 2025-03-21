@@ -15,6 +15,7 @@ bits09876543210
 >>&b00000000000	CT	Connection Timeout								S,I,2	^
 >>&b00000000000	TP	Transport Protocol								B,L,0-UDP;1-TCP;	^
 >>&b00000000000	BU	Broadcast UDP Data								B,L,0-Reject;1-Accept;	^
+>>&b00000000000	AR	Allow Reconnects 								B,L,0-Disabled;1-Enabled;	^
 >>&b00000000000	IB	Inband Commands 								B,L,0-Disabled;1-Enabled;	^
 >>&b00000000000	RM	Routing Mode 									B,L,0-Server (Slave);1-Server OR Client (Master);2-Client only;	^
 >>&b00000000000	SF	Accept Connection From 							B,L,0-Any IP-address;1-IP matching destination IP-address;	^

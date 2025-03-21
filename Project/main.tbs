@@ -6,6 +6,7 @@ dim divider_by_2 as no_yes
 dim dsr_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
 dim dtr_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
 dim cts_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
+dim rts_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
 dim port_in_use(MAX_NUM_SERIAL_PORTS) as no_yes
 dim running_light as byte
 dim net_linkstate as byte
@@ -322,7 +323,7 @@ init_now:			'already in the serial login mode -- this is init
 			dsr_state_curr(f)=io.lineget(dsr_mapping(f))
 			dtr_state_curr(f)=io.lineget(dtr_mapping(f))
 			cts_state_curr(f)=io.lineget(cts_mapping(f))
-			rts_state_curr(f)=io.lineget(ser.rtsmap)
+			rts_state_curr(f)=io.lineget(rts_mapping(f))
 
 			if (param_nb(f) and NOTIF_BIT_POSITION_DSR)<>0 then
 				if dsr_state_curr(f)<>dsr_state_prev(f) then
@@ -429,7 +430,7 @@ init_now:			'already in the serial login mode -- this is init
 		if param_rm(f)<>RM_SERVER and param_cm(f)=CM_COMMAND_DSR then
 			sock.num=sock_comm(f)
 			io.num=dsr_mapping(f)
-			if io.state=LOW then
+			if io.state=HIGH then	'XXXX Possible ERROR should be HIGH
 				'connection is supposed to be off
 				if sock.statesimple=PL_SSTS_EST then
 					sock.close
@@ -654,10 +655,10 @@ sub on_sock_event(newstate as pl_sock_state, newstatesimple as pl_sock_state_sim
 			'do we need to indicate connection status through DTR?
 			if param_dt(f)=YES then
 				io.num=dtr_mapping(f)
-				if newstatesimple=PL_SSTS_EST then
-					io.state=HIGH
-				else
+				if newstatesimple=PL_SSTS_EST then	'XXXX Original Yes = HIGH / NO = LOW
 					io.state=LOW
+				else
+					io.state=HIGH
 				end if
 			end if
 

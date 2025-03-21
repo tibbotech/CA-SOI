@@ -50,6 +50,7 @@ bits5432109876543210
 >>&b0000000000000000	I=CT;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT>255?"Maximum timeout is 255 minutes":""
 >>&b0000000000000000	I=TP;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1
 >>&b0000000000000000	I=BU;E=1;D=Broadcast UDP data;T=INT;C=STATIC;O=0- Reject/0/1- Accept/1;S=TP==0?"e":"i"
+>>&b0000000000000000	I=AR;E=1;D=Allow reconnects;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP==1?"e":"i"
 >>&b0000000000000000	I=IB;E=1;D=Inband commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP==1?"e":"i"
 >>&b0000000000000000	I=RM;D=Routing Mode;T=INT;C=STATIC;O=0- Server (Slave)/0/1- Server OR client (master)/1/2- Client only/2
 >>&b0000000000000000	I=SF;E=1;D=Accept connection from;T=INT;C=STATIC;O=0- Any IP-address/0/1- IP matching destination IP-address/1;S=RM!=2?"e":"i"
@@ -77,6 +78,7 @@ bits5432109876543210
 >>&b0000000010000000	I=CT@2;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT@2>255?"Maximum timeout is 255 minutes":""
 >>&b0000000010000000	I=TP@2;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1
 >>&b0000000010000000	I=BU@2;E=1;D=Broadcast UDP data;T=INT;C=STATIC;O=0- Reject/0/1- Accept/1;S=TP@2==0?"e":"i"
+>>&b0000000010000000	I=AR@2;E=1;D=Allow reconnects;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP==1?"e":"i"
 >>&b0000000010000000	I=IB@2;E=1;D=Inband commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP@2==1?"e":"i"
 >>&b0000000010000000	I=RM@2;D=Routing Mode;T=INT;C=STATIC;O=0- Server (Slave)/0/1- Server OR client (master)/1/2- Client only/2
 >>&b0000000010000000	I=SF@2;E=1;D=Accept connection from;T=INT;C=STATIC;O=0- Any IP-address/0/1- IP matching destination IP-address/1;S=RM@2!=2?"e":"i"
@@ -104,6 +106,7 @@ bits5432109876543210
 >>&b0000000110000000	I=CT@3;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT@3>255?"Maximum timeout is 255 minutes":""
 >>&b0000000110000000	I=TP@3;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1
 >>&b0000000110000000	I=BU@3;E=1;D=Broadcast UDP data;T=INT;C=STATIC;O=0- Reject/0/1- Accept/1;S=TP@3==0?"e":"i"
+>>&b0000000110000000	I=AR@3;E=1;D=Allow reconnects;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP==1?"e":"i"
 >>&b0000000110000000	I=IB@3;E=1;D=Inband commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP@3==1?"e":"i"
 >>&b0000000110000000	I=RM@3;D=Routing Mode;T=INT;C=STATIC;O=0- Server (Slave)/0/1- Server OR client (master)/1/2- Client only/2
 >>&b0000000110000000	I=SF@3;E=1;D=Accept connection from;T=INT;C=STATIC;O=0- Any IP-address/0/1- IP matching destination IP-address/1;S=RM@3!=2?"e":"i"
@@ -131,6 +134,7 @@ bits5432109876543210
 >>&b0000001110000000	I=CT@4;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT@4>255?"Maximum timeout is 255 minutes":""
 >>&b0000001110000000	I=TP@4;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1
 >>&b0000001110000000	I=BU@4;E=1;D=Broadcast UDP data;T=INT;C=STATIC;O=0- Reject/0/1- Accept/1;S=TP@4==0?"e":"i"
+>>&b0000001110000000	I=AR@4;E=1;D=Allow reconnects;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP==1?"e":"i"
 >>&b0000001110000000	I=IB@4;E=1;D=Inband commands;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled/1;S=TP@4==1?"e":"i"
 >>&b0000001110000000	I=RM@4;D=Routing Mode;T=INT;C=STATIC;O=0- Server (Slave)/0/1- Server OR client (master)/1/2- Client only/2
 >>&b0000001110000000	I=SF@4;E=1;D=Accept connection from;T=INT;C=STATIC;O=0- Any IP-address/0/1- IP matching destination IP-address/1;S=RM@4!=2?"e":"i"

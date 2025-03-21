@@ -165,6 +165,7 @@ declare login_tout as word
 declare dsr_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
 declare dtr_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
 declare cts_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
+declare rts_mapping(MAX_NUM_SERIAL_PORTS) as pl_io_num
 declare port_in_use(MAX_NUM_SERIAL_PORTS) as no_yes
 declare io_state_changed(MAX_NUM_SERIAL_PORTS) as no_yes
 declare dsr_state_curr(MAX_NUM_SERIAL_PORTS), dsr_state_prev(MAX_NUM_SERIAL_PORTS) as byte

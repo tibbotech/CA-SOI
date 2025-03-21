@@ -84,7 +84,7 @@ sub ethernet_link_state_change(new_state as pl_net_linkstate)
 						dev_debugprint("Start Wi-Fi")
 					#endif
 					num_wln_failures=0
-					if wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,NO,PL_WLN_ASCAN_INFRASTRUCTURE)<>WLN_STATUS_OK then
+					if wln_start(param_wa,param_ws,wln_password,PL_WLN_DOMAIN_FCC,YES,PL_WLN_ASCAN_INFRASTRUCTURE)<>WLN_STATUS_OK then
 						#if DEV_DEBUG_PRINT
 							dev_debugprint("Wi-Fi MALFUNCTIONED (could not start)")
 						#endif
@@ -841,7 +841,7 @@ public sub set_comm_channel_buffers(channel_num as byte, num_buffers as byte, se
 		'the rest of our buffers gets equal number of pages, RX for ser gets more if we can't divide evenly
 		if ser_port_in_prog_mode=NO then
 			sock.cmdbuffrq(1)
-			sock.rplbuffrq(1)
+			sock.rplbuffrq(2)	'XXXX
 			num_buffers=num_buffers-2
 			x=num_buffers/3
 			y=num_buffers-x*2
@@ -927,7 +927,11 @@ public sub set_sock_connmode(channel_num as byte)
 					sock.reconmode=PL_SOCK_RECONMODE_1
 				end if
 			else
-				sock.reconmode=PL_SOCK_RECONMODE_2
+				if val(stg_get("AR",channel_num)) = 1	then	'Allow Reconnection?
+					sock.reconmode=PL_SOCK_RECONMODE_2
+				else
+					sock.reconmode=PL_SOCK_RECONMODE_1
+				end if
 			end if
 		else
 			sock.inconmode=PL_SOCK_INCONMODE_SPECIFIC_IP_ANY_PORT
@@ -939,7 +943,11 @@ public sub set_sock_connmode(channel_num as byte)
 					sock.reconmode=PL_SOCK_RECONMODE_0
 				end if
 			else
-				sock.reconmode=PL_SOCK_RECONMODE_2
+				if val(stg_get("AR",channel_num)) = 1	then	'Allow Reconnection?
+					sock.reconmode=PL_SOCK_RECONMODE_2
+				else
+					sock.reconmode=PL_SOCK_RECONMODE_1
+				end if
 			end if
 		end if
 	end if
