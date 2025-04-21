@@ -1,5 +1,17 @@
 'SUPPORTED PLATFORMS & RELATED CAPABILITIES--------------------------
-
+'
+'EM500W, EM510W
+'EM1000, EM1000N, EM1000W, EM1001, EM1001N, EM1001W, EM1202, EM1202N, EM1202W, EM1206, EM1206N, EM1206W
+'NB1010, NB1010N, NB1010W
+'TPP2N, TPP2W, TPP3N, TPP3W
+'DS1100, DS1101N, DS1101W, DS1102N, DS1102W, DS1202, DS1206
+'EM2000W
+'TPP3WG2
+'WS1101, WS1102
+'
+'Removed: EM2000, EM500
+'Need to check: TPP2N, TPP2W
+'
 #define DHCP_DEBUG_PRINT 0
 #define DEV_DEBUG_PRINT 0
 #define WLN_DEBUG_PRINT 0
@@ -42,7 +54,7 @@
 	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
 	#define SUPPORTS_DISPLAY 0
 
-#elif PLATFORM_ID=EM1000 or PLATFORM_ID=EM1001 or PLATFORM_ID=EM2000 'also used for DS100x devices
+#elif PLATFORM_ID=EM1000 or PLATFORM_ID=EM1001 'also used for DS100x devices
 	#define SUPPORTS_422_485_4 1
 	#define SUPPORTS_422_485_1 0
 	#define SUPPORTS_OVER_115200 1
@@ -115,18 +127,6 @@
 	#define SUPPORTS_GPRS 0
 	#define SUPPORTS_APP_UPGR_BY_DSMAN 1
 	#define WLN_WPA 1
-	#define SUPPORTS_DISPLAY 0
-
-#elif PLATFORM_ID=EM500
-	#define SUPPORTS_422_485_4 0
-	#define SUPPORTS_422_485_1 0
-	#define SUPPORTS_OVER_115200 0
-	#define PER_CHANNEL_STATUS_INDICATION 0
-	#define SIGNAL_STRENGTH_INDICATION 0
-	#define DEVICE_PORT_SCHEME PORT_SCHEME_1P
-	#define POWER_ON_PIN9 0
-	#define SUPPORTS_GPRS 0
-	#define SUPPORTS_APP_UPGR_BY_DSMAN 0
 	#define SUPPORTS_DISPLAY 0
 
 #elif PLATFORM_ID=EM500W or PLATFORM_ID=EM510W 
@@ -277,15 +277,20 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 
 
 #if DEVICE_PORT_SCHEME=PORT_SCHEME_4P or DEVICE_PORT_SCHEME=PORT_SCHEME_4C
-	#define DSMAN_MAX_NUM_LINES 121
 	const NUM_SERIAL_PORTS=4						'(must not exceed MAX_NUM_SERIAL_PORTS)  +++ ULYSSES +++
+#if PLATFORM_ID <> EM2000W and PLATFORM_ID <> TPP3WG2	
+	#define DSMAN_MAX_NUM_LINES 126
 	#define DSMAN_DESCRIPTOR_FILE "dsman_4p_4c.txt"
+#else
+	#define DSMAN_MAX_NUM_LINES 126
+	#define DSMAN_DESCRIPTOR_FILE "dsman_4p_4c_g2.txt"
+#endif
 	
 #else
-	#define DSMAN_MAX_NUM_LINES 42 
+	#define DSMAN_MAX_NUM_LINES 43 
 	const NUM_SERIAL_PORTS=1						'max possible number of serial ports (must not exceed ser.numofports)
 	
-	#if PLATFORM_ID = EM510W
+	#if PLATFORM_ID = EM5000	'XXXX EM510W?
 		#define DSMAN_DESCRIPTOR_FILE "dsman_1p_em510.txt"	'SDF file used by the DS Manager
 	#else 
 		#if PLATFORM_ID = WS1101 or PLATFORM_ID=WS1102
@@ -298,7 +303,7 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 
 #if PLATFORM_ID=EM500W 
 	#define	HTML_WIFI_DEF "html_config_wifi_em500w.txt"
-#elif PLATFORM_ID=EM510W 
+#elif PLATFORM_ID=EM510W	'XXXX EM510W 
 	#define	HTML_WIFI_DEF "html_config_wifi_em510w.txt"
 #elif PLATFORM_ID = WS1101 or PLATFORM_ID=WS1102
 	#define	HTML_WIFI_DEF "html_config_wifi_ws110x.txt"
@@ -315,10 +320,12 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 
 #define	HTML_GPRS_DEF "html_config_gprs.txt"
 
-#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102   
-#define	HTML_PORT_DEF "html_config_ports.txt"
+#if PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
+	#define	HTML_PORT_DEF "html_config_ports_ws110x.txt"
+#elif PLATFORM_ID = EM2000W or PLATFORM_ID = TPP3WG2
+	#define	HTML_PORT_DEF "html_config_ports_g2.txt"
 #else 
-#define	HTML_PORT_DEF "html_config_ports_ws110x.txt"
+	#define	HTML_PORT_DEF "html_config_ports.txt"
 #endif
 
 #if WLN_AVAILABLE
@@ -459,6 +466,13 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 	const L0 = PL_IO_NUM_2_CTS_INT0
 #endif
 
+#if PLATFORM_ID=EM500W or PLATFORM_ID=DS1100	'We need the extra space from EEPROM for settings
+	const STOR_BASE=25
+#elif PLATFORM_ID=EM510W
+	const STOR_BASE=33
+#else
+	const STOR_BASE=29
+#endif
 'DEFINES-------------------------------------------------------------
 
 #define DHCP_MAX_RETRY_DELAY 2
@@ -476,7 +490,7 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 #if DEVICE_PORT_SCHEME=PORT_SCHEME_4P or DEVICE_PORT_SCHEME=PORT_SCHEME_4C
 	includepp "settings_4p_4c.xtxt"
 #else
-	#if PLATFORM_ID = EM510W
+	#if PLATFORM_ID = EM5000	'XXXX EM510W?
 		includepp "settings_1p_em510.xtxt"
 	#elif PLATFORM_ID = WS1101 or PLATFORM_ID = WS1102
 		includepp "settings_1p_ws110x.xtxt"

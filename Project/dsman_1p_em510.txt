@@ -32,6 +32,7 @@
 >>&b00000000	I=FC;D=RTS/CTS flow control;T=INT;C=STATIC;O=0- Disabled OR remote /0/1- Local RTS-CTS/1/2- Local XON-XOFF/2
 >>&b00000000	I=DT;D=DTR mode;T=INT;C=STATIC;O=0- Idle or remote /0/1- Indicate connection status/1
 >>&b00000000	I=DS;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT==0?"e":"i"
+>>&b00000000	I=LS;D=Line State;T=INT;C=STATIC;O=0- Standard /0/1- Reversed /1
 >>&b00000000	I=BR;D=Baudrate;T=INT;C=STATIC;O=8-150bps/8/9-300bps/9/10-600bps/10/0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7
 >>&b00000000	I=PR;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
 >>&b00000000	I=BB;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1

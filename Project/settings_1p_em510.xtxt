@@ -21,6 +21,7 @@
 >>FC	E	B	1	0	2	A	0
 >>DT	E	B	1	0	1	A	0
 >>DS	E	B	1	0	1	A	0
+>>LS	E	B	1	0	1	A	1
 >>BR	E	B	1	0	11	A	5
 >>PR	E	B	1	0	4	A	0
 >>BB	E	B	1	0	1	A	1
@@ -38,8 +39,8 @@
 >>WI	E	D	1	4	4	I	192.168.1.40
 >>WG	E	D	1	4	4	I	1.0.0.1
 >>WN	E	D	1	4	4	I	0.0.0.0
->>WK	E	S	2	0	32	I	^
 #define STG_DESCRIPTOR_FILE "settings_1p_em510.xtxt"
+#define STG_DEBUG_PRINT 1
 #define STG_MAX_NUM_SETTINGS 41
 #define STG_RAM_ARRAY_SIZE 0
 #define STG_MAX_SETTING_NAME_LEN 2

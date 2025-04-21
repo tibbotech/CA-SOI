@@ -28,6 +28,7 @@ bits09876543210
 >>&b00000000000	FC	Flow Control									B,L,0-Disabled OR remote;1-Enabled, RTS/CTS;2-Enabled, XON/XOFF;	^
 >>&b00000000000	DT	DTR Mode 										B,L,0-Idle OR remote;1-Indicate connection status;	^
 >>&b00000000000	DS	Power-up DTR State 								B,L,0-LOW;1-HIGH;	^
+>>&b00000000000	LS	Line State 										B,L,0-Standard;1-Reversed;	^
 >>&b00010000000	BR	Baudrate										B,L,0-1200bps;1-2400bps;2-4800bps;3-9600bps;4-19200bps;5-38400bps;6-57600bps;7-115200bps;8-150bps;9-300bps;10-600bps;11-28800bps;	^
 >>&b00100000000	BR	Baudrate										B,L,0-1200bps;1-2400bps;2-4800bps;3-9600bps;4-19200bps;5-38400bps;6-57600bps;7-115200bps;8-150bps;9-300bps;10-600bps;11-28800bps;12-230400bps;13-460800bps;	^
 >>&b00000000000	PR	Parity											B,L,0-None;1-Even;2-Odd;3-Mark;4-Space;	^

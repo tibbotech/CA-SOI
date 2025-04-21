@@ -49,6 +49,7 @@ public dim param_sf(MAX_NUM_SERIAL_PORTS) as no_yes
 public dim param_cm(MAX_NUM_SERIAL_PORTS) as en_connection_modes
 public dim param_dt(MAX_NUM_SERIAL_PORTS) as no_yes
 public dim param_ds(MAX_NUM_SERIAL_PORTS) as low_high
+public dim param_ls(MAX_NUM_SERIAL_PORTS) as no_yes
 public dim param_rc(MAX_NUM_SERIAL_PORTS) as no_yes
 public dim param_op(MAX_NUM_SERIAL_PORTS) as no_yes
 public dim param_nb(MAX_NUM_SERIAL_PORTS) as byte
@@ -930,7 +931,7 @@ public sub set_sock_connmode(channel_num as byte)
 				if val(stg_get("AR",channel_num)) = 1	then	'Allow Reconnection?
 					sock.reconmode=PL_SOCK_RECONMODE_2
 				else
-					sock.reconmode=PL_SOCK_RECONMODE_1
+					sock.reconmode=PL_SOCK_RECONMODE_0
 				end if
 			end if
 		else
@@ -943,11 +944,7 @@ public sub set_sock_connmode(channel_num as byte)
 					sock.reconmode=PL_SOCK_RECONMODE_0
 				end if
 			else
-				if val(stg_get("AR",channel_num)) = 1	then	'Allow Reconnection?
-					sock.reconmode=PL_SOCK_RECONMODE_2
-				else
-					sock.reconmode=PL_SOCK_RECONMODE_1
-				end if
+				sock.reconmode=PL_SOCK_RECONMODE_2
 			end if
 		end if
 	end if
@@ -1292,8 +1289,8 @@ end function
 '--------------------------------------------------------------------
 function baudrate_set(br_mode as br_modes) as ok_ng
 'Set the UART according to the supplied baudrate "number"
-
-select case br_mode
+#if PLATFORM_ID <> EM2000W and  PLATFORM_ID <> TPP3WG2
+	select case br_mode
 	case BR_1200:
 		ser.baudrate=ser.div9600*8
 	case BR_2400:
@@ -1326,6 +1323,39 @@ select case br_mode
 		baudrate_set=NG
 		exit function
 	end select
+#else
+	select case br_mode
+#if PLATFORM_ID <> EM2000W	and PLATFORM_ID <> TPP3WG2
+	case BR_300:
+		ser.baudrate= PL_SER_BAUD_300
+#endif
+	case BR_1200:
+		ser.baudrate= PL_SER_BAUD_1200
+	case BR_2400:
+		ser.baudrate= PL_SER_BAUD_2400
+	case BR_4800:
+		ser.baudrate= PL_SER_BAUD_4800
+	case BR_9600:
+		ser.baudrate= PL_SER_BAUD_9600
+	case BR_19200:
+		ser.baudrate= PL_SER_BAUD_19200
+	case BR_38400:
+		ser.baudrate= PL_SER_BAUD_38400
+	case BR_57600:
+		ser.baudrate= PL_SER_BAUD_57600
+	case BR_115200:
+		ser.baudrate= PL_SER_BAUD_115200
+	case BR_230400:
+		ser.baudrate= PL_SER_BAUD_230400
+	case BR_460800:
+		ser.baudrate= PL_SER_BAUD_460800
+	case BR_921600:
+		ser.baudrate= PL_SER_BAUD_921600
+	case else
+		baudrate_set=NG
+		exit function
+	end select
+#endif
 
 	baudrate_set=OK
 end function
@@ -1333,7 +1363,7 @@ end function
 '--------------------------------------------------------------------
 function baudrate_get() as br_modes
 	dim i as word
-	
+#if PLATFORM_ID <> EM2000W and  PLATFORM_ID <> TPP3WG2
 	if ser.baudrate<=ser.div9600 then
 		i=ser.div9600/ser.baudrate
 		select case i
@@ -1371,7 +1401,36 @@ function baudrate_get() as br_modes
 			baudrate_get=BR_28800
 		end select
 	end if
-	
+#else
+	select case ser.baudrate
+#if PLATFORM_ID <> EM2000W	and PLATFORM_ID <> TPP3WG2
+	case PL_SER_BAUD_300:
+		baudrate_get= BR_300
+#endif
+	case PL_SER_BAUD_1200:
+		baudrate_get=BR_1200
+	case PL_SER_BAUD_2400:
+		baudrate_get=BR_2400
+	case PL_SER_BAUD_4800:
+		baudrate_get=BR_4800
+	case PL_SER_BAUD_9600:
+		baudrate_get=BR_9600
+	case PL_SER_BAUD_19200:
+		baudrate_get=BR_19200
+	case PL_SER_BAUD_38400:
+		baudrate_get=BR_38400
+	case PL_SER_BAUD_57600:
+		baudrate_get=BR_57600
+	case PL_SER_BAUD_115200:
+		baudrate_get=BR_115200
+	case PL_SER_BAUD_230400:
+		baudrate_get=BR_230400
+	case PL_SER_BAUD_460800:
+		baudrate_get=BR_460800
+	case PL_SER_BAUD_921600:
+		baudrate_get=BR_921600
+	end select	 
+#endif
 end function
 #endif 
 

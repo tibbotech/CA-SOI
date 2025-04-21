@@ -88,7 +88,7 @@ public sub print_routing_data(channel_num as byte, fragment_num as print_routing
 		if ser.interface=PL_SER_SI_FULLDUPLEX then print_str="Full-duplex" else print_str="Half-duplex"
 	
 	case PRD_BR:  'Baudrate
-#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102
+#if PLATFORM_ID <> WS1101 and PLATFORM_ID <> WS1102 and PLATFORM_ID <> EM2000W and PLATFORM_ID <> TPP3WG2
 		if ser.baudrate<=ser.div9600 then
 			i=ser.div9600/ser.baudrate
 			select case i
@@ -129,8 +129,10 @@ public sub print_routing_data(channel_num as byte, fragment_num as print_routing
 #else 
 
 		select case ser.baudrate
+#if PLATFORM_ID <> EM2000W	and PLATFORM_ID <> TPP3WG2
 		case PL_SER_BAUD_300:
 			print_str="300bps"
+#endif
 		case PL_SER_BAUD_1200:
 			print_str="1200bps"
 		case PL_SER_BAUD_2400:
@@ -186,28 +188,28 @@ public sub print_routing_data(channel_num as byte, fragment_num as print_routing
 		if ser.ctsmap=PL_INT_NULL then
 			print_str="(unmapped)"
 		else
-			if io.lineget(cts_mapping(channel_num))=LOW then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"
+			if (io.lineget(cts_mapping(channel_num))=LOW AND param_ls(channel_num) = NO) OR (io.lineget(cts_mapping(channel_num))=HIGH AND param_ls(channel_num) = YES) then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"
 		end if
 	
 	case PRD_DSR: 'DSR
 		if dsr_mapping(channel_num)=PL_IO_NULL then
 			print_str="(unmapped)"
 		else
-			if io.lineget(dsr_mapping(channel_num))=LOW then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"	'XXXX change from HIGH to LOW?
+			if (io.lineget(dsr_mapping(channel_num))=LOW AND param_ls(channel_num) = NO) OR (io.lineget(dsr_mapping(channel_num))=HIGH AND param_ls(channel_num) = YES) then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"	'XXXX change from HIGH to LOW?
 		end if
 	
 	case PRD_RTS: 'RTS
 		if ser.rtsmap=PL_IO_NULL then
 			print_str="(unmapped)"
 		else
-			if io.lineget(rts_mapping(channel_num))=LOW then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"
+			if (io.lineget(rts_mapping(channel_num))=LOW AND param_ls(channel_num) = NO) OR (io.lineget(rts_mapping(channel_num))=HIGH AND param_ls(channel_num) = YES) then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"
 		end if
 	
 	case PRD_DTR: 'DTR
 		if dtr_mapping(channel_num)=PL_IO_NULL then
 			print_str="(unmapped)"
 		else
-			if io.lineget(dtr_mapping(channel_num))=LOW then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"
+			if (io.lineget(dtr_mapping(channel_num))=LOW AND param_ls(channel_num) = NO) OR (io.lineget(dtr_mapping(channel_num))=HIGH AND param_ls(channel_num) = YES) then print_str="<font color='red'>HIGH<font>" else print_str="<font color='green'>LOW<font>"
 		end if
 	end select
 

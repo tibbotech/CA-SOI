@@ -28,7 +28,7 @@ enum en_dsman_status_codes
 	EN_DSMAN_STATUS_WRONG_DESCRIPTOR	'Wrong descriptor file data
 end enum
 
-const FIRMWARE_VERSION="{ds4.37}"
+const FIRMWARE_VERSION="{ds4.40}"
 const LOGIN_TOUT_CONST=600
 const MAX_NET_CMD_LEN=131 'max length of network command
 const MAX_NET_RPL_LEN=255 'max length of network replies

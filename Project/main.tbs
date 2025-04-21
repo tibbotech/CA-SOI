@@ -425,12 +425,12 @@ init_now:			'already in the serial login mode -- this is init
 		end if
 	next f
 
-	'do we need to control connection establishment/termination through DSR?
+	'do we need to control connection establishment/termination through DSR? Affected by Line State (LS). Standard(NO): HIGH(off) / LOW(on) || Reversed(NO):  HIGH(on) / LOW(off)
 	for f=0 to NUM_SERIAL_PORTS-1
 		if param_rm(f)<>RM_SERVER and param_cm(f)=CM_COMMAND_DSR then
 			sock.num=sock_comm(f)
 			io.num=dsr_mapping(f)
-			if io.state=HIGH then	'XXXX Possible ERROR should be HIGH
+			if (io.state=HIGH AND param_ls(f) =NO) or (io.state=LOW AND param_ls(f)=YES) then
 				'connection is supposed to be off
 				if sock.statesimple=PL_SSTS_EST then
 					sock.close
@@ -652,13 +652,21 @@ sub on_sock_event(newstate as pl_sock_state, newstatesimple as pl_sock_state_sim
 			'do we need to change the serial port state?
 			decide_on_ser_enabled(f)
 
-			'do we need to indicate connection status through DTR?
+			'do we need to indicate connection status through DTR? Affected by Line State (LS). Standard(NO): Yes = LOW / No = High || Reversed(NO):  Yes = HIGH / NO = LOW
 			if param_dt(f)=YES then
 				io.num=dtr_mapping(f)
-				if newstatesimple=PL_SSTS_EST then	'XXXX Original Yes = HIGH / NO = LOW
-					io.state=LOW
+				if newstatesimple=PL_SSTS_EST then	
+					if param_ls(f) = NO then
+						io.state=LOW
+					else 
+						io.state=HIGH
+					end if	
 				else
-					io.state=HIGH
+					if param_ls(f) = NO then
+						io.state=HIGH
+					else 
+						io.state=LOW
+					end if	
 				end if
 			end if
 

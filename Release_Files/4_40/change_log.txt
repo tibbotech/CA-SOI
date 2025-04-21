@@ -1,0 +1,59 @@
+Changelog of SOI Application
+
+	- Date of Change : 04/18/2025
+	- New revision of SOI Application : 4.40
+	- Previous version of SOI Application : 4.38
+	- Level of change : Major
+	- Risk Assessment and Cons: Device in operation will need to be reconfigured due to change to the settings.
+	- Depreciated Features : None
+
+	- Reasons for change:
+		-- Added new setting AR (allow reconnects) when under TCP mode. Default is enabled which will accept reconnect from the same IP, Disabled will not allow any reconnecton.
+		-- Added new setting LS (Line State). RTS/CTS/DSR/DTR lines originally reported the electrical state (+=high / 0=low). The two options are: Standard (UART line state) and Reversed (Default value - electrical state).
+		-- Added rts_mapping variable to conform to coding standard.
+		-- Changed all Wifi start to be in active scanning mode so hidden SSID can still be connected to.
+		-- Fixed the baudrate issue with Gen2 devices by removing speed lower than 1200bps.
+		-- Added code to handle different stor.base value of different platforms. It was causing initialization issues.
+		-- Cleaned up codes that reference to depreciated platforms (EM2000, EM500)
+
+	- Files changed:
+		-- boot.tbs : Added stor.base assignment. 
+		-- device.tbh : new variable for LS (Line State)
+		-- device.tbs : new variable for LS (Line State). Implement AR. Set limits for lower baudrate bounds for G2.
+		-- dsman.tbh : changed version from ds4.38 to ds4.40
+		-- dsman.tbs : allow for proper showing of LS based on mode. fixed baudrate showing issue in G2.
+		-- dsman_1p.txt : Added AR and LS
+		-- dsman_1p_em510.txt : Added AR and LS
+		-- dsman_1p_ws110x.txt : Added AR and LS
+		-- dsman_4p_4c.txt : Added AR and LS
+		-- dsman_4p_4c_g2.txt : Added file for G2
+		-- dsman_4p_4c_g3.txt : Added file for future G3 implementation
+		-- global.tbh : Added notes on currently supported platforms. Cleaned up unsupported platforms. Extended max lines in DS Manager settings. Made sure all platforms were pointing to the right files.
+		-- html_common.tbs : fixed baudrate and line state showing issues.
+		-- html_config_ports.txt : Added LS
+		-- html_config_ports.txt : Added file for G2
+		-- html_config_ports_ws110x.txt : Added LS
+		-- main.tbs : Fixed Line State related code.
+		-- settings_1p.xtxt : Increased max settings and added new settings.
+		-- settings_1p_em510.xtxt : Increased max settings and added new settings. Removed unused WK setting.
+		-- settings_1p_ws110x.xtxt : Increased max settings and added new settings.
+		-- settings_4p_4c.xtxt : Increased max settings and added new settings.
+
+	- Release files generated:
+		-- 4_40/soi_application-4_40-(DS1100).bin
+		-- 4_40/soi_application-4_40-(DS1101)-(GA1000).bin
+		-- 4_40/soi_application-4_40-(DS1101)-(WA2000).bin
+		-- 4_40/soi_application-4_40-(DS1102)-(GA1000).bin
+		-- 4_40/soi_application-4_40-(DS1102)-(WA2000).bin	
+		-- 4_40/soi_application-4_40-(DS1206).bin
+		-- 4_40/soi_application-4_40-(EM500).bin
+		-- 4_40/soi_application-4_40-(EM510).bin
+		-- 4_40/soi_application-4_40-(EM1206)-(GA1000).bin
+		-- 4_40/soi_application-4_40-(EM1206)-(WA2000).bin
+		-- 4_40/soi_application-4_40-(EM2000).bin
+		-- 4_40/soi_application-4_40-(TPP3(G2)).bin
+		-- 4_40/soi_application-4_40-(WS1102).bin
+	
+	- Other possible pending issues:
+		-- Under Mixed Client/Server mode in TCP the Inband mode access seems to be unstable.
+		-- Add 92K support for G2 platforms.	

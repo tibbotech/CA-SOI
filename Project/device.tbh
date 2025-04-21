@@ -189,6 +189,7 @@ declare param_sf(MAX_NUM_SERIAL_PORTS) as no_yes
 declare param_cm(MAX_NUM_SERIAL_PORTS) as en_connection_modes
 declare param_dt(MAX_NUM_SERIAL_PORTS) as no_yes
 declare param_ds(MAX_NUM_SERIAL_PORTS) as low_high
+declare param_ls(MAX_NUM_SERIAL_PORTS) as no_yes
 declare param_rc(MAX_NUM_SERIAL_PORTS) as no_yes
 declare param_op(MAX_NUM_SERIAL_PORTS) as no_yes
 declare param_nb(MAX_NUM_SERIAL_PORTS) as byte

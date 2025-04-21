@@ -7,7 +7,7 @@ public sub boot
 	dim num_ports_in_use as byte
 	dim dhcp_used as no_yes
 
-
+	stor.base=STOR_BASE
 	'do we have an OLED display?
 	#if SUPPORTS_DISPLAY
 		lcd_init()
@@ -183,6 +183,7 @@ public sub boot
 				ser.num=1
 				ser.ctsmap=SER1_CTS_INT
 				ser.rtsmap=SER1_RTS
+				rts_mapping(1)=SER1_RTS
 				cts_mapping(1)=BASE_OF_INT_LINES+SER1_CTS_INT
 				dsr_mapping(1)=SER1_DSR
 				dtr_mapping(1)=SER1_DTR
@@ -195,6 +196,7 @@ public sub boot
 				ser.num=2
 				ser.ctsmap=SER2_CTS_INT
 				ser.rtsmap=SER2_RTS
+				rts_mapping(2)=SER2_RTS
 				cts_mapping(2)=BASE_OF_INT_LINES+SER2_CTS_INT
 				dsr_mapping(2)=SER2_DSR
 				dtr_mapping(2)=SER2_DTR
@@ -207,6 +209,7 @@ public sub boot
 				ser.num=3
 				ser.ctsmap=SER3_CTS_INT
 				ser.rtsmap=SER3_RTS
+				rts_mapping(3)=SER3_RTS
 				cts_mapping(3)=BASE_OF_INT_LINES+SER3_CTS_INT
 				dsr_mapping(3)=SER3_DSR
 				dtr_mapping(3)=SER3_DTR
@@ -237,6 +240,7 @@ public sub boot
 				cts_mapping(0)=L2	
 				ser.ctsmap=I2
 				ser.rtsmap=L3
+				rts_mapping(0)=L3
 				dsr_mapping(0)=L4
 				dtr_mapping(0)=L5
 
@@ -244,6 +248,7 @@ public sub boot
 				cts_mapping(0)=L2	
 				ser.ctsmap=I2
 				ser.rtsmap=L3
+				rts_mapping(0)=L3
 				dsr_mapping(0)=L4
 				dtr_mapping(0)=L5
 				port_in_use(3)=YES
@@ -252,6 +257,7 @@ public sub boot
 				cts_mapping(0)=L2
 				ser.ctsmap=I2
 				ser.rtsmap=L3
+				rts_mapping(0)=L3
 				port_in_use(2)=YES
 				port_in_use(3)=YES
 
@@ -259,6 +265,7 @@ public sub boot
 				cts_mapping(0)=L2
 				ser.ctsmap=I2
 				ser.rtsmap=L3
+				rts_mapping(0)=L3
 				port_in_use(2)=YES
 				ser.num=2
 				cts_mapping(2)=L6
@@ -269,6 +276,7 @@ public sub boot
 				cts_mapping(0)=L2
 				ser.ctsmap=I2
 				ser.rtsmap=L3
+				rts_mapping(0)=L3
 				port_in_use(2)=YES
 				dsr_mapping(2)=L6
 				dtr_mapping(2)=L7
@@ -287,6 +295,7 @@ public sub boot
 				cts_mapping(1)=L6
 				ser.ctsmap=I6
 				ser.rtsmap=L7
+				rts_mapping(1)=L7
 		
 			case M7:	'RX/TX		RX1/TX1		DSR/DTR		DSR1/dtr1
 				dsr_mapping(0)=L4
@@ -304,6 +313,7 @@ public sub boot
 				cts_mapping(0)=L6
 				ser.ctsmap=I6
 				ser.rtsmap=L7
+				rts_mapping(0)=L7
 				port_in_use(1)=YES
 				port_in_use(2)=YES
 			
@@ -317,16 +327,19 @@ public sub boot
 				cts_mapping(0)=L2
 				ser.ctsmap=I2
 				ser.rtsmap=L3
+				rts_mapping(0)=L3
 				port_in_use(3)=YES
 				ser.num=3
 				cts_mapping(3)=L4
 				ser.ctsmap=I4
 				ser.rtsmap=L5
+				rts_mapping(3)=L3
 					
 			case M12:	'RX/TX		CTS/RTS		DSR3/DTR3	RX3/tx3	
 				cts_mapping(0)=L2
 				ser.ctsmap=I2
 				ser.rtsmap=L3
+				rts_mapping(0)=L3
 				port_in_use(3)=YES
 				dsr_mapping(3)=L4
 				dtr_mapping(3)=L5
@@ -339,6 +352,7 @@ public sub boot
 				cts_mapping(3)=L2
 				ser.ctsmap=I2
 				ser.rtsmap=L3
+				rts_mapping(3)=L3
 
 			case M14:	'RX/TX		DSR3/DTR3	DSR/DTR		RX3/tx3
 				dsr_mapping(0)=L4
@@ -679,7 +693,11 @@ public sub boot
 				if param_dt(f)=NO then
 					io.state=param_ds(f)
 				else
-					io.state=HIGH 'no connection	'XXXX this should be HIGH
+					if param_ls(f) = NO then
+						io.state=HIGH 'no connection	
+					else
+						io.state=LOW
+					end if
 				end if
 			end if
 			
