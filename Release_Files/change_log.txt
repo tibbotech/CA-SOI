@@ -1,0 +1,36 @@
+Changelog of SOI Application
+
+	- Date of Change : 04/18/2025
+	- New revision of SOI Application : 4.40
+	- Previous version of SOI Application : 4.38
+	- Level of change : Major
+	- Risk Assessment and Cons: Device in operation will need to be reconfigured due to change to the settings.
+	- Depreciated Features : None
+
+	- Reasons for change:
+		
+
+	- Files changed:
+		-- boot.tbs : Added stor.base assignment. 
+
+
+	- Release files generated:
+		-- 4_40/soi_application-4_40-(DS1100).bin
+		-- 4_40/soi_application-4_40-(DS1101)-(GA1000).bin
+		-- 4_40/soi_application-4_40-(DS1101)-(WA2000).bin
+		-- 4_40/soi_application-4_40-(DS1102)-(GA1000).bin
+		-- 4_40/soi_application-4_40-(DS1102)-(WA2000).bin	
+		-- 4_40/soi_application-4_40-(DS1206).bin
+		-- 4_40/soi_application-4_40-(EM500).bin
+		-- 4_40/soi_application-4_40-(EM510).bin
+		-- 4_40/soi_application-4_40-(EM1206)-(GA1000).bin
+		-- 4_40/soi_application-4_40-(EM1206)-(WA2000).bin
+		-- 4_40/soi_application-4_40-(EM2000).bin
+		-- 4_40/soi_application-4_40-(TPP3(G2)).bin
+		-- 4_40/soi_application-4_40-(WS1102).bin
+	
+	- Other possible pending issues:
+		-- Under Mixed Client/Server mode in TCP the Inband mode access seems to be unstable.
+		-- Add 92K support for G2 platforms.	
+		-- WiFi Key cannot accept special characters.
+		-- 
