@@ -1319,6 +1319,8 @@ function baudrate_set(br_mode as br_modes) as ok_ng
 		ser.baudrate=ser.div9600/24
 	case BR_460800:
 		ser.baudrate=ser.div9600/48
+	case BR_921600:
+		ser.baudrate=ser.div9600/96
 	case else
 		baudrate_set=NG
 		exit function
@@ -1379,8 +1381,10 @@ function baudrate_get() as br_modes
 			baudrate_get=BR_115200
 		case 24
 			baudrate_get=BR_230400
-		case else
+		case 48
 			baudrate_get=BR_460800
+		case 96
+			baudrate_get=BR_921600
 		end select
 	else
 		i=ser.baudrate/ser.div9600

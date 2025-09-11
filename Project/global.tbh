@@ -279,15 +279,15 @@ const MAX_NUM_SERIAL_PORTS=4 'do not change this, array declarations are made wi
 #if DEVICE_PORT_SCHEME=PORT_SCHEME_4P or DEVICE_PORT_SCHEME=PORT_SCHEME_4C
 	const NUM_SERIAL_PORTS=4						'(must not exceed MAX_NUM_SERIAL_PORTS)  +++ ULYSSES +++
 #if PLATFORM_ID <> EM2000W and PLATFORM_ID <> TPP3WG2	
-	#define DSMAN_MAX_NUM_LINES 126
+	#define DSMAN_MAX_NUM_LINES 127
 	#define DSMAN_DESCRIPTOR_FILE "dsman_4p_4c.txt"
 #else
-	#define DSMAN_MAX_NUM_LINES 126
+	#define DSMAN_MAX_NUM_LINES 127
 	#define DSMAN_DESCRIPTOR_FILE "dsman_4p_4c_g2.txt"
 #endif
 	
 #else
-	#define DSMAN_MAX_NUM_LINES 43 
+	#define DSMAN_MAX_NUM_LINES 44 
 	const NUM_SERIAL_PORTS=1						'max possible number of serial ports (must not exceed ser.numofports)
 	
 	#if PLATFORM_ID = EM5000	'XXXX EM510W?

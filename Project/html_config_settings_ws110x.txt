@@ -26,6 +26,7 @@ bits2109876543210
 >>&b0000000000000	WI	IP-address 						S,I,15	^
 >>&b0000000000000	WG	Gateway IP-address 				S,I,15	^
 >>&b0000000000000	WN	Subnet Mask						S,I,15	^
+>>&b0000000000000	TN	Telnet Access					B,L,0-Disabled;1-Enabled;	^
 
 
 >>&b0000100000001	PC	Number of Serial Ports in Use	B,L,0-One port;1-Two ports;	^

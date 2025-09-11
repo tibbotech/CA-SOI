@@ -282,8 +282,10 @@ sub lcd_display_page(page as enum_lcd_pages, mode as enum_lcd_print_modes, eleme
 						s="115200"
 					case 24
 						s="230400"
-					case else
+					case 48
 						s="460800"
+					case 96
+						s="924600"
 					end select
 				else
 					i=ser.baudrate/ser.div9600

@@ -5,6 +5,7 @@
 >>&b00000000	I=IP;D=IP-address;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
 >>&b00000000	I=GI;D=Gateway IP-address;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
 >>&b00000000	I=NM;D=Subnet mask;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
+>>&b00000000	I=TN;D=Telnet Access;T=INT;C=STATIC;O=0- Disable/0/1- Enable/1
 
 >>&b00001000	I=$WI-FI;D=Wi-Fi;T=GROUP
 >>&b00001000	I=WE;D=Wi-Fi Mode;T=INT;C=STATIC;O=0- Disabled/0/1- Enabled (on demand)/1/2- Enabled (permanently)/2

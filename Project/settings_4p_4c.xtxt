@@ -22,7 +22,7 @@
 >>DT	E	B	4	0	1	A	0
 >>DS	E	B	4	0	1	A	0
 >>LS	E	B	4	0	1	A	1
->>BR	E	B	4	0	13	A	5
+>>BR	E	B	4	0	14	A	5
 >>PR	E	B	4	0	4	A	0
 >>BB	E	B	4	0	1	A	1
 >>MD	E	B	4	0	255	A	1
@@ -45,8 +45,10 @@
 >>GE	E	B	1	0	2	I	0
 >>GA	E	S	1	0	16	I	*99\x23
 >>GP	E	S	1	0	16	A	INTERNET
+>>TN	E	B	1	0	1	A	1
 #define STG_DESCRIPTOR_FILE "settings_4p_4c.xtxt"
-#define STG_MAX_NUM_SETTINGS 47
+#define STG_DEBUG_PRINT 1
+#define STG_MAX_NUM_SETTINGS 48
 #define STG_RAM_ARRAY_SIZE 0
 #define STG_MAX_SETTING_NAME_LEN 2
 #define STG_MAX_SETTING_VALUE_LEN 32

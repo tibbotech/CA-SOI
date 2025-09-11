@@ -9,6 +9,7 @@
 >>&b00000000	I=WI;D=IP-address;T=STRING;C=IPCTRL;F=R*
 >>&b00000000	I=WG;D=Gateway IP-address;T=STRING;C=IPCTRL;F=R*
 >>&b00000000	I=WN;D=Subnet mask;T=STRING;C=IPCTRL;F=R*
+>>&b00000000	I=TN;D=Telnet Access;T=INT;C=STATIC;O=0- Disable/0/1- Enable/1
 >>&b00000000	I=$CHANNEL1;D=Channel1;T=GROUP
 >>&b00000000	I=CT;D=Connection timeout (min);T=INT;C=EDIT/SPIN/0/1/1/10;O=0- Disabled/0;V=CT>255?"Maximum timeout is 255 minutes":""
 >>&b00000000	I=TP;D=Transport protocol;T=INT;C=STATIC;O=0- UDP/0/1- TCP/1

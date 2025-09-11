@@ -104,8 +104,10 @@ public sub print_routing_data(channel_num as byte, fragment_num as print_routing
 				print_str="115200bps"
 			case 24
 				print_str="230400bps"
-			case else
+			case 48
 				print_str="460800bps"
+			case 96
+				print_str="921600bps"
 			end select
 		else
 			i=ser.baudrate/ser.div9600

@@ -674,8 +674,10 @@ d1:			if x>=num_sdf then goto reply_err
 						s2="115200bps"
 					case 24
 						s2="230400bps"
-					case else
+					case 48
 						s2="460800bps"
+					case 96
+						s2="921600bps"
 					end select
 				else
 					i=ser.baudrate/ser.div9600

@@ -24,6 +24,7 @@ bits5432109876543210
 >>&b0000000000000000	I=IP;D=IP-address;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
 >>&b0000000000000000	I=GI;D=Gateway IP-address;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
 >>&b0000000000000000	I=NM;D=Subnet mask;T=STRING;C=IPCTRL;S=DH==1?"a":"e";F=R*
+>>&b0000000000000000	I=TN;D=Telnet Access;T=INT;C=STATIC;O=0- Disable/0/1- Enable/1
 >>&b0000010000000001	I=PC;D=Number of serial ports in use;T=INT;C=STATIC;O=0- One port/0/1- Two ports/1
 >>&b0000100000000001	I=PC;D=Number of serial ports in use;T=INT;C=STATIC;O=0- One port/0/1- Two ports/1/2- Three ports/2
 >>&b0001000000000001	I=PC;D=Number of serial ports in use;T=INT;C=STATIC;O=0- One port/0/1- Two ports/1/2- Three ports/2/3- Four ports/3
@@ -64,7 +65,7 @@ bits5432109876543210
 >>&b0000000000000000	I=DT;D=DTR mode;T=INT;C=STATIC;O=0- Idle OR remote /0/1- Indicate connection status/1
 >>&b0000000000000000	I=DS;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT==0?"e":"i"
 >>&b0000000000000000	I=LS;D=Line State;T=INT;C=STATIC;O=0- Standard /0/1- Reversed /1
->>&b0000000000000000	I=BR;D=Baudrate;T=INT;C=STATIC;O=0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13
+>>&b0000000000000000	I=BR;D=Baudrate;T=INT;C=STATIC;O=0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13/14-921600bps/14
 >>&b0000000000000000	I=PR;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
 >>&b0000000000000000	I=BB;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1
 >>&b0000000000000000	I=MD;D=Max intercharacter delay;T=INT;C=EDIT/SPIN/0/1/1/10;V=MD>255?"Maximum intercharacter delay is 255":""
@@ -93,7 +94,7 @@ bits5432109876543210
 >>&b0000000010000000	I=DT@2;D=DTR mode;T=INT;C=STATIC;O=0- Idle OR remote /0/1- Indicate connection status/1
 >>&b0000000010000000	I=DS@2;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT@2==0?"e":"i"
 >>&b0000000010000000	I=LS@2;D=Line State;T=INT;C=STATIC;O=0- Standard /0/1- Reversed /1
->>&b0000000010000000	I=BR@2;D=Baudrate;T=INT;C=STATIC;O=0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13
+>>&b0000000010000000	I=BR@2;D=Baudrate;T=INT;C=STATIC;O=0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13/14-921600bps/14
 >>&b0000000010000000	I=PR@2;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
 >>&b0000000010000000	I=BB@2;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1
 >>&b0000000010000000	I=MD@2;D=Max intercharacter delay;T=INT;C=EDIT/SPIN/0/1/1/10;V=MD@2>255?"Maximum intercharacter delay is 255":""
@@ -122,7 +123,7 @@ bits5432109876543210
 >>&b0000000110000000	I=DT@3;D=DTR mode;T=INT;C=STATIC;O=0- Idle OR remote /0/1- Indicate connection status/1
 >>&b0000000110000000	I=DS@3;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT@3==0?"e":"i"
 >>&b0000000110000000	I=LS@3;D=Line State;T=INT;C=STATIC;O=0- Standard /0/1- Reversed /1
->>&b0000000110000000	I=BR@3;D=Baudrate;T=INT;C=STATIC;O=0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13
+>>&b0000000110000000	I=BR@3;D=Baudrate;T=INT;C=STATIC;O=0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13/14-921600bps/14
 >>&b0000000110000000	I=PR@3;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
 >>&b0000000110000000	I=BB@3;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1
 >>&b0000000110000000	I=MD@3;D=Max intercharacter delay;T=INT;C=EDIT/SPIN/0/1/1/10;V=MD@3>255?"Maximum intercharacter delay is 255":""
@@ -151,7 +152,7 @@ bits5432109876543210
 >>&b0000001110000000	I=DT@4;D=DTR mode;T=INT;C=STATIC;O=0- Idle OR remote /0/1- Indicate connection status/1
 >>&b0000001110000000	I=DS@4;E=1;D=Power-up DTR state;T=INT;C=STATIC;O=0- LOW /0/1- HIGH/1;S=DT@4==0?"e":"i"
 >>&b0000001110000000	I=LS@4;D=Line State;T=INT;C=STATIC;O=0- Standard /0/1- Reversed /1
->>&b0000001110000000	I=BR@4;D=Baudrate;T=INT;C=STATIC;O=0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13
+>>&b0000001110000000	I=BR@4;D=Baudrate;T=INT;C=STATIC;O=0-1200bps/0/1-2400bps/1/2-4800bps/2/3-9600bps/3/4-19200bps/4/11-28800bps/11/5-38400bps/5/6-57600bps/6/7-115200bps/7/12-230400bps/12/13-460800bps/13/14-921600bps/14
 >>&b0000001110000000	I=PR@4;D=Parity;T=INT;C=STATIC;O=0- None/0/1- Even/1/2- Odd/2/3- Mark/3/4- Space/4
 >>&b0000001110000000	I=BB@4;D=Data bits;T=INT;C=STATIC;O=0- 7 bits/0/1- 8 bits/1
 >>&b0000001110000000	I=MD@4;D=Max intercharacter delay;T=INT;C=EDIT/SPIN/0/1/1/10;V=MD@4>255?"Maximum intercharacter delay is 255":""
