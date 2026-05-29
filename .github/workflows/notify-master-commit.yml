@@ -13,7 +13,7 @@ jobs:
       - name: Build email body
         run: |
           {
-            echo "A new push was made to the master"
+            echo "A new push was made to the master."
             echo ""
             echo "Repository: ${{ github.repository }}"
             echo "Branch: ${{ github.ref_name }}"
