@@ -1,0 +1,39 @@
+name: Notify master branch commit
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build email body
+        run: |
+          {
+            echo "A new push was made to the master branch."
+            echo ""
+            echo "Repository: ${{ github.repository }}"
+            echo "Branch: ${{ github.ref_name }}"
+            echo "Pushed by: ${{ github.actor }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "Commit URL: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+            echo ""
+            echo "Commit message:"
+            echo "${{ github.event.head_commit.message }}"
+          } > email_body.txt
+
+      - name: Send email
+        uses: dawidd6/action-send-mail@v6
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "New commit on master: ${{ github.event.head_commit.message }}"
+          to: ${{ vars.COMMIT_NOTIFY_RECIPIENTS }}
+          from: GitHub Commit Notifier <${{ secrets.MAIL_USERNAME }}>
+          body: file://email_body.txt
