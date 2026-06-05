@@ -1,9 +1,11 @@
-name: Notify master branch commit
+name: Notify release
 
 on:
-  push:
-    branches:
-      - master
+  release:
+    types: [published]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   notify:
@@ -13,16 +15,16 @@ jobs:
       - name: Build email body
         run: |
           {
-            echo "A new push was made to the master."
+            echo "A new GitHub Release was published."
             echo ""
             echo "Repository: ${{ github.repository }}"
-            echo "Branch: ${{ github.ref_name }}"
-            echo "Pushed by: ${{ github.actor }}"
-            echo "Commit: ${{ github.sha }}"
-            echo "Commit URL: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+            echo "Release name: ${{ github.event.release.name }}"
+            echo "Tag: ${{ github.event.release.tag_name }}"
+            echo "Created by: ${{ github.actor }}"
+            echo "Release URL: ${{ github.event.release.html_url }}"
             echo ""
-            echo "Commit message:"
-            echo "${{ github.event.head_commit.message }}"
+            echo "Release notes:"
+            echo "${{ github.event.release.body }}"
           } > email_body.txt
 
       - name: Send email
@@ -33,7 +35,7 @@ jobs:
           secure: true
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
-          subject: "New commit on master: ${{ github.event.head_commit.message }}"
+          subject: "New release: ${{ github.event.release.tag_name }} - ${{ github.repository }}"
           to: ${{ vars.COMMIT_NOTIFY_RECIPIENTS }}
-          from: GitHub Commit Notifier <${{ secrets.MAIL_USERNAME }}>
+          from: GitHub Release Notifier <${{ secrets.MAIL_USERNAME }}>
           body: file://email_body.txt
